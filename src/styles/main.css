@@ -1,0 +1,100 @@
+@import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 색 토큰. 값은 "R G B". 화면 색을 바꿀 때는 이 두 블록만 고친다. */
+:root {
+  --bg: 245 246 250;
+  --surface: 255 255 255;
+  --sunken: 238 240 246;
+  --line: 226 229 238;
+  --ink: 22 26 40;
+  --sub: 88 96 118;
+  --faint: 140 147 166;
+  --brand: 79 70 229;
+  --brand-soft: 236 235 255;
+  --brand-ink: 55 48 163;
+  --ok: 5 150 105;
+  --ok-soft: 220 247 236;
+  --warn: 196 113 8;
+  --warn-soft: 254 242 214;
+  --bad: 220 38 38;
+  --bad-soft: 254 228 228;
+  --live: 225 29 72;
+  --live-soft: 255 228 234;
+}
+.dark {
+  --bg: 13 15 22;
+  --surface: 22 25 35;
+  --sunken: 17 19 28;
+  --line: 42 46 62;
+  --ink: 236 238 245;
+  --sub: 164 171 192;
+  --faint: 112 119 140;
+  --brand: 139 133 255;
+  --brand-soft: 38 36 78;
+  --brand-ink: 199 196 255;
+  --ok: 52 211 153;
+  --ok-soft: 16 52 42;
+  --warn: 251 191 36;
+  --warn-soft: 60 44 12;
+  --bad: 248 113 113;
+  --bad-soft: 66 22 26;
+  --live: 251 113 133;
+  --live-soft: 70 20 34;
+}
+
+@layer base {
+  html { font-size: 15px; }
+  body {
+    @apply bg-bg text-ink antialiased;
+    font-feature-settings: 'tnum' 1, 'ss06' 1;
+  }
+  *:focus-visible { @apply outline-none ring-2 ring-brand/50 ring-offset-1 ring-offset-surface; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgb(var(--line)); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--faint)); background-clip: content-box; border: 2px solid transparent; }
+}
+
+@layer components {
+  .card { @apply rounded-2xl border border-line bg-surface shadow-card; }
+  .card-pad { @apply p-4; }
+
+  .btn {
+    @apply inline-flex h-9 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-line bg-surface px-3.5 text-[0.93rem] font-semibold text-ink transition hover:bg-sunken active:scale-[.98] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary { @apply border-transparent bg-brand text-white hover:bg-brand/90 dark:text-[#0d0f16]; }
+  .btn-danger { @apply border-transparent bg-live text-white hover:bg-live/90 dark:text-[#0d0f16]; }
+  .btn-ghost { @apply border-transparent bg-transparent hover:bg-sunken; }
+  .btn-sm { @apply h-8 rounded-lg px-2.5 text-[0.87rem]; }
+  .btn-lg { @apply h-11 rounded-xl px-5 text-base; }
+  .btn-icon { @apply w-9 px-0; }
+
+  .input {
+    @apply h-9 w-full rounded-xl border border-line bg-surface px-3 text-[0.93rem] text-ink placeholder:text-faint transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20;
+  }
+  textarea.input { @apply h-auto py-2 leading-relaxed; }
+
+  .badge { @apply inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[0.8rem] font-semibold; }
+  .tone-neutral { @apply bg-sunken text-sub; }
+  .tone-brand { @apply bg-brand-soft text-brand-ink; }
+  .tone-ok { @apply bg-ok-soft text-ok; }
+  .tone-warn { @apply bg-warn-soft text-warn; }
+  .tone-bad { @apply bg-bad-soft text-bad; }
+  .tone-live { @apply bg-live-soft text-live; }
+
+  .label { @apply text-[0.8rem] font-semibold uppercase tracking-wide text-faint; }
+  .h-page { @apply text-[1.45rem] font-bold tracking-tight; }
+  .h-sec { @apply text-[1.02rem] font-bold tracking-tight; }
+
+  .tab { @apply relative flex h-10 items-center gap-1.5 px-3 text-[0.93rem] font-semibold text-sub transition hover:text-ink; }
+  .tab-on { @apply text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand; }
+
+  .row-line { @apply border-b border-line last:border-0 hover:bg-sunken/60; }
+  .th { @apply px-3 py-2 text-left text-[0.8rem] font-semibold text-faint; }
+  .td { @apply px-3 py-2.5 align-middle text-[0.93rem]; }
+
+  .kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-line bg-sunken px-1 text-[0.72rem] font-semibold text-sub; }
+}

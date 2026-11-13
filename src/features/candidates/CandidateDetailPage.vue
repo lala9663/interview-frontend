@@ -1,0 +1,147 @@
+<script setup>
+// 면접자 상세: 전형 진행(차수), 인적 사항·이력서(블라인드 제외본), 면접 등록.
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ArrowLeft, EyeOff, Plus } from 'lucide-vue-next'
+import StageTrack from '@/components/StageTrack.vue'
+import Modal from '@/components/Modal.vue'
+import { candidateApi } from '@/api/index.js'
+import { useAuth } from '@/stores/auth.js'
+import { useUi } from '@/stores/ui.js'
+import { BLIND_FIELD, INTERVIEW_TYPE, PROFILE_EXTRA, TRACK, labelOf } from '@/lib/labels.js'
+
+const props = defineProps({ id: { type: [String, Number], required: true } })
+const auth = useAuth()
+const ui = useUi()
+const router = useRouter()
+
+const c = ref(null)
+const adding = ref(false)
+const form = ref({ type: 'JOB', mode: 'ONLINE', scheduledAt: '', durationMinutes: 60 })
+
+async function load() {
+  c.value = await candidateApi.get(props.id)
+}
+onMounted(() => load().catch((e) => ui.fail(e)))
+
+function open(it) {
+  router.push({ name: it.status === 'EVALUATING' || it.status === 'DONE' ? 'review' : 'prep', params: { id: it.id } })
+}
+
+async function addInterview() {
+  try {
+    await candidateApi.addInterview(props.id, {
+      ...form.value,
+      scheduledAt: form.value.scheduledAt ? new Date(form.value.scheduledAt).toISOString() : null,
+    })
+    adding.value = false
+    ui.toast('면접을 등록했습니다.', 'ok')
+    await load()
+  } catch (e) {
+    ui.fail(e)
+  }
+}
+</script>
+
+<template>
+  <div v-if="c" class="space-y-4">
+    <button class="btn btn-ghost btn-sm -ml-2" @click="router.push({ name: 'candidates' })"><ArrowLeft :size="16" />면접자 목록</button>
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-xl font-bold text-brand-ink">{{ c.name.slice(0, 1) }}</span>
+        <div>
+          <h1 class="h-page leading-tight">{{ c.name }}</h1>
+          <p class="text-[0.9rem] text-sub">
+            <span class="badge mr-1" :class="`tone-${TRACK[c.track]?.tone}`">{{ labelOf(TRACK, c.track) }}</span>{{ c.jobTitle }} · {{ c.applicantNo }}
+          </p>
+        </div>
+      </div>
+      <button v-if="auth.isAdmin" class="btn" @click="adding = true"><Plus :size="16" />면접 등록</button>
+    </div>
+
+    <section class="card card-pad">
+      <h2 class="h-sec mb-3">전형 진행</h2>
+      <StageTrack v-if="c.interviews.length" :interviews="c.interviews" @open="open" />
+      <p v-else class="text-[0.9rem] text-sub">등록된 면접이 없습니다.</p>
+    </section>
+
+    <div class="grid gap-4 lg:grid-cols-[320px_1fr]">
+      <div class="space-y-4">
+        <section class="card card-pad space-y-3">
+          <h2 class="h-sec">학력</h2>
+          <div v-for="(e, i) in c.profile.education" :key="i">
+            <p class="font-semibold">{{ e.school }}</p>
+            <p class="text-[0.9rem] text-sub">{{ e.major }} · {{ e.degree }}<template v-if="e.gpa"> · {{ e.gpa }}</template></p>
+          </div>
+          <template v-if="c.profile.courses?.length">
+            <p class="label pt-1">주요 수강 과목</p>
+            <div class="flex flex-wrap gap-1.5"><span v-for="x in c.profile.courses" :key="x" class="badge tone-neutral">{{ x }}</span></div>
+          </template>
+          <template v-if="c.profile.certificates?.length">
+            <p class="label pt-1">자격증</p>
+            <div class="flex flex-wrap gap-1.5"><span v-for="x in c.profile.certificates" :key="x" class="badge tone-neutral">{{ x }}</span></div>
+          </template>
+          <template v-for="(v, k) in c.profile.extra" :key="k">
+            <p class="label pt-1">{{ PROFILE_EXTRA[k] || k }}</p><p class="text-[0.93rem]">{{ v }}</p>
+          </template>
+        </section>
+        <section v-if="c.blindedFields?.length" class="rounded-2xl border border-dashed border-line px-4 py-3">
+          <p class="mb-1.5 flex items-center gap-1.5 text-[0.88rem] font-semibold text-sub"><EyeOff :size="15" />블라인드 처리된 항목</p>
+          <p class="text-[0.86rem] text-faint">{{ c.blindedFields.map((f) => BLIND_FIELD[f] || f).join(', ') }} — 화면과 AI 요약·질문에서 제외됩니다.</p>
+        </section>
+      </div>
+
+      <div class="space-y-4">
+        <section v-if="c.profile.careers?.length" class="card card-pad space-y-3">
+          <h2 class="h-sec">경력</h2>
+          <div v-for="(x, i) in c.profile.careers" :key="i">
+            <p class="font-semibold">{{ x.company }} <span class="font-normal text-sub">· {{ x.role }} · {{ x.period }}</span></p>
+            <p class="mt-1 leading-relaxed text-sub">{{ x.text }}</p>
+          </div>
+        </section>
+        <section v-if="c.profile.projects?.length" class="card card-pad space-y-3">
+          <h2 class="h-sec">프로젝트</h2>
+          <div v-for="(x, i) in c.profile.projects" :key="i">
+            <p class="font-semibold">{{ x.title }}</p>
+            <p class="mt-1 leading-relaxed text-sub">{{ x.text }}</p>
+          </div>
+        </section>
+        <section v-if="c.profile.essays?.length" class="card card-pad space-y-4">
+          <h2 class="h-sec">자기소개서</h2>
+          <div v-for="(x, i) in c.profile.essays" :key="i">
+            <p class="font-semibold">{{ x.title }}</p>
+            <p class="mt-1 whitespace-pre-line leading-relaxed text-sub">{{ x.text }}</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <Modal v-if="adding" title="면접 등록" @close="adding = false">
+      <div class="space-y-3">
+        <div>
+          <p class="label mb-1.5">면접 유형</p>
+          <div class="flex flex-wrap gap-1.5">
+            <button v-for="(v, k) in INTERVIEW_TYPE" :key="k" class="btn btn-sm" :class="form.type === k ? 'btn-primary' : ''" @click="form.type = k">{{ v.label }}</button>
+          </div>
+        </div>
+        <div>
+          <p class="label mb-1.5">진행 방식</p>
+          <div class="flex gap-1.5">
+            <button class="btn btn-sm" :class="form.mode === 'OFFLINE' ? 'btn-primary' : ''" @click="form.mode = 'OFFLINE'">대면</button>
+            <button class="btn btn-sm" :class="form.mode === 'ONLINE' ? 'btn-primary' : ''" @click="form.mode = 'ONLINE'">화상</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-[1fr_120px] gap-3">
+          <div><label class="label mb-1.5 block" for="at">일시 (비워 두면 일정 전)</label><input id="at" v-model="form.scheduledAt" type="datetime-local" class="input" /></div>
+          <div><label class="label mb-1.5 block" for="dur">시간(분)</label><input id="dur" v-model.number="form.durationMinutes" type="number" min="10" step="10" class="input" /></div>
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn" @click="adding = false">취소</button>
+        <button class="btn btn-primary" @click="addInterview">등록</button>
+      </template>
+    </Modal>
+  </div>
+  <div v-else class="space-y-3"><div v-for="n in 3" :key="n" class="h-24 animate-pulse rounded-2xl bg-sunken" /></div>
+</template>
