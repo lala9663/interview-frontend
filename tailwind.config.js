@@ -7,6 +7,8 @@ const here = (p) => fileURLToPath(new URL(p, import.meta.url)).replace(/\\/g, '/
 export default {
   content: [here('./index.html'), here('./src') + '/**/*.{vue,js}'],
   darkMode: 'class',
+  // 상태 색 클래스는 `tone-${값}`처럼 조립해서 쓰므로 항상 만들어 둔다.
+  safelist: [{ pattern: /^tone-(neutral|brand|ok|warn|bad|live)$/ }],
   theme: {
     extend: {
       fontFamily: {
@@ -25,6 +27,7 @@ export default {
         warn: { DEFAULT: v('warn'), soft: v('warn-soft') },
         bad: { DEFAULT: v('bad'), soft: v('bad-soft') },
         live: { DEFAULT: v('live'), soft: v('live-soft') },
+        pole: { a: v('pole-a'), b: v('pole-b') },
       },
       boxShadow: {
         card: '0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.03)',

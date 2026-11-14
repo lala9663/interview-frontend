@@ -1,68 +1,69 @@
 <script setup>
-// 면접자: 엑셀 업로드, 목록, 면접관 자동 매칭.
+// 면접자: 위쪽 탭(신입/경력)에서 고른 채용의 면접자 목록. 등록(엑셀 업로드)과 면접관 매칭은 "관리" 메뉴(관리자)에 있다.
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { AlertTriangle, ChevronRight, Search, Upload, Users, Wand2 } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Search, Users } from 'lucide-vue-next'
 import StatusBadge from '@/components/StatusBadge.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import UploadDialog from './UploadDialog.vue'
 import { candidateApi, recruitmentApi } from '@/api/index.js'
 import { useAuth } from '@/stores/auth.js'
 import { useUi } from '@/stores/ui.js'
 import { INTERVIEW_STATUS, INTERVIEW_TYPE, JOB_STATUS, labelOf } from '@/lib/labels.js'
-import { ago } from '@/lib/format.js'
 
 const auth = useAuth()
 const ui = useUi()
 const router = useRouter()
 
+const PAGE_SIZE = 20
 const rows = ref([])
+const total = ref(0)
+const page = ref(0)
 const jobs = ref([])
-const uploads = ref([])
 const loading = ref(false)
 const q = ref('')
 const jobCode = ref('')
-const showUpload = ref(false)
-const matching = ref(false)
+const status = ref('')
+const pages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+const statuses = ['SCHEDULED', 'IN_PROGRESS', 'EVALUATING', 'DONE', 'WAITING']
 
 async function load() {
-  if (!ui.recruitmentId) return
+  const id = ui.recruitmentId
+  if (!id) return
   loading.value = true
   try {
-    const [list, jobList, ups] = await Promise.all([
-      candidateApi.list(ui.recruitmentId, { q: q.value, jobCode: jobCode.value, size: 200 }),
-      recruitmentApi.jobs(ui.recruitmentId),
-      auth.isAdmin ? candidateApi.uploads(ui.recruitmentId) : Promise.resolve({ items: [] }),
+    const [list, jobList] = await Promise.all([
+      candidateApi.list(id, { q: q.value, jobCode: jobCode.value, status: status.value, page: page.value, size: PAGE_SIZE }),
+      recruitmentApi.jobs(id),
     ])
+    if (id !== ui.recruitmentId) return
     rows.value = list.items
+    total.value = list.total ?? list.items.length
     jobs.value = jobList.items
-    uploads.value = ups.items
   } catch (e) {
     ui.fail(e)
   } finally {
     loading.value = false
   }
 }
+const first = () => {
+  page.value = 0
+  load()
+}
 onMounted(load)
-watch(() => ui.recruitmentId, () => { jobCode.value = ''; q.value = ''; load() })
-watch(jobCode, load)
+watch(() => ui.recruitmentId, () => {
+  jobCode.value = q.value = status.value = ''
+  rows.value = []
+  first()
+})
+watch([jobCode, status], first)
 let timer = null
-watch(q, () => { clearTimeout(timer); timer = setTimeout(load, 250) })
-
-const unassigned = computed(() => rows.value.filter((r) => !r.interviewers?.length).length)
-const lastUpload = computed(() => uploads.value[0] || null)
-
-async function autoAssign() {
-  matching.value = true
-  try {
-    await candidateApi.autoAssign(ui.recruitmentId)
-    ui.toast('직무(JD) 기준으로 면접관을 배정했습니다.', 'ok')
-    await load()
-  } catch (e) {
-    ui.fail(e)
-  } finally {
-    matching.value = false
-  }
+watch(q, () => {
+  clearTimeout(timer)
+  timer = setTimeout(first, 250)
+})
+function go(p) {
+  page.value = Math.min(pages.value - 1, Math.max(0, p))
+  load()
 }
 </script>
 
@@ -71,41 +72,30 @@ async function autoAssign() {
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 class="h-page">면접자</h1>
-        <p class="text-[0.9rem] text-sub">{{ ui.recruitment?.title }} · {{ rows.length }}명</p>
+        <p class="text-[0.9rem] text-sub">{{ ui.recruitment?.title }} · {{ total }}명</p>
       </div>
-      <div v-if="auth.isAdmin" class="flex gap-2">
-        <button class="btn" :disabled="matching || !unassigned" :title="unassigned ? '' : '배정할 면접자가 없습니다'" @click="autoAssign">
-          <Wand2 :size="16" />{{ matching ? '배정하는 중…' : `면접관 자동 매칭${unassigned ? ` (${unassigned})` : ''}` }}
-        </button>
-        <button class="btn btn-primary" @click="showUpload = true"><Upload :size="16" />엑셀 업로드</button>
-      </div>
-    </div>
-
-    <div v-if="lastUpload?.failedRows" class="flex items-center gap-3 rounded-2xl border border-bad/30 bg-bad-soft px-4 py-3">
-      <AlertTriangle :size="18" class="shrink-0 text-bad" />
-      <p class="flex-1 text-[0.93rem]">
-        <b>{{ lastUpload.fileName }}</b>에서 <b class="text-bad">{{ lastUpload.failedRows }}개 행</b>을 등록하지 못했습니다.
-        <span class="text-sub">({{ ago(lastUpload.uploadedAt) }}<template v-if="lastUpload.errors?.length">, {{ lastUpload.errors.map((e) => `${e.rowNumber}행 ${e.column}`).slice(0, 3).join(' · ') }}</template>)</span>
-      </p>
-      <button class="btn btn-sm" @click="showUpload = true">다시 올리기</button>
+      <RouterLink v-if="auth.isAdmin" :to="{ name: 'admin-setup' }" class="btn">면접자 등록 · 면접관 매칭은 관리에서</RouterLink>
     </div>
 
     <section class="card">
       <div class="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2.5">
-        <div class="relative w-64">
+        <div class="relative w-60">
           <Search :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
           <input v-model="q" class="input pl-9" placeholder="이름 또는 수험번호" aria-label="면접자 검색" />
         </div>
-        <div class="flex gap-1">
-          <button class="btn btn-sm" :class="jobCode === '' ? 'btn-primary' : 'btn-ghost'" @click="jobCode = ''">전체</button>
-          <button v-for="j in jobs" :key="j.id" class="btn btn-sm" :class="jobCode === j.jobCode ? 'btn-primary' : 'btn-ghost'" @click="jobCode = j.jobCode">{{ j.title }}</button>
-        </div>
+        <select v-model="jobCode" class="input w-auto" aria-label="지원 직무">
+          <option value="">직무 전체</option>
+          <option v-for="j in jobs" :key="j.id" :value="j.jobCode">{{ j.title }}</option>
+        </select>
+        <select v-model="status" class="input w-auto" aria-label="현재 단계 상태">
+          <option value="">상태 전체</option>
+          <option v-for="s in statuses" :key="s" :value="s">{{ labelOf(INTERVIEW_STATUS, s) }}</option>
+        </select>
       </div>
 
       <div v-if="loading && !rows.length" class="space-y-2 p-4"><div v-for="n in 6" :key="n" class="h-11 animate-pulse rounded-xl bg-sunken" /></div>
-      <EmptyState v-else-if="!rows.length" title="면접자가 없습니다" hint="면접 대상자 엑셀을 올리면 여기에 목록으로 보입니다.">
+      <EmptyState v-else-if="!rows.length" title="해당하는 면접자가 없습니다" :hint="auth.isAdmin ? '관리 메뉴에서 면접 대상자 엑셀을 올리면 여기에 보입니다.' : '조건을 바꿔 보세요.'">
         <template #icon><Users :size="22" /></template>
-        <button v-if="auth.isAdmin" class="btn btn-primary" @click="showUpload = true"><Upload :size="16" />엑셀 업로드</button>
       </EmptyState>
       <table v-else class="w-full">
         <thead>
@@ -133,8 +123,15 @@ async function autoAssign() {
           </tr>
         </tbody>
       </table>
-    </section>
 
-    <UploadDialog v-if="showUpload" :recruitment-id="ui.recruitmentId" @close="showUpload = false" @uploaded="load" />
+      <footer v-if="pages > 1" class="flex items-center justify-between border-t border-line px-4 py-2.5 text-[0.88rem] text-sub">
+        <span>{{ page * PAGE_SIZE + 1 }}–{{ Math.min(total, (page + 1) * PAGE_SIZE) }} / {{ total }}명</span>
+        <div class="flex items-center gap-1">
+          <button class="btn btn-sm btn-icon" :disabled="page === 0" aria-label="이전" @click="go(page - 1)"><ChevronLeft :size="16" /></button>
+          <span class="px-2 tabular-nums">{{ page + 1 }} / {{ pages }}</span>
+          <button class="btn btn-sm btn-icon" :disabled="page >= pages - 1" aria-label="다음" @click="go(page + 1)"><ChevronRight :size="16" /></button>
+        </div>
+      </footer>
+    </section>
   </div>
 </template>

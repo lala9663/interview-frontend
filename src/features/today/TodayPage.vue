@@ -1,6 +1,6 @@
 <script setup>
 // 오늘: 내가 맡은 면접을 시간순으로. 가장 가까운 면접을 크게 보여 주고 바로 들어갈 수 있게 한다.
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, CalendarClock, Clock, FileText, MapPin, Mic, Video } from 'lucide-vue-next'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -18,10 +18,18 @@ const router = useRouter()
 const items = ref([])
 const loading = ref(true)
 
+// 위쪽 탭(신입/경력)에서 고른 채용의 내 면접만 보여 준다.
 async function load() {
-  items.value = (await interviewApi.list({ mine: true, size: 200 })).items
+  if (!ui.recruitmentId) return
+  items.value = (await interviewApi.list({ mine: true, recruitmentId: ui.recruitmentId, size: 200 })).items
 }
-onMounted(() => load().catch((e) => ui.fail(e)).finally(() => (loading.value = false)))
+const reload = () => load().catch((e) => ui.fail(e)).finally(() => (loading.value = false))
+onMounted(reload)
+watch(() => ui.recruitmentId, () => {
+  loading.value = true
+  items.value = []
+  reload()
+})
 usePolling(load, { interval: 8000 })
 
 const byTime = (a, b) => new Date(a.scheduledAt || 0) - new Date(b.scheduledAt || 0)
@@ -49,7 +57,7 @@ const action = (it) => ({ IN_PROGRESS: '면접 방으로', SCHEDULED: '준비하
     <div class="flex items-end justify-between">
       <div>
         <p class="text-[0.9rem] font-medium text-sub">{{ md(new Date().toISOString()) }}</p>
-        <h1 class="h-page">{{ auth.user?.name }}님의 오늘</h1>
+        <h1 class="h-page">{{ auth.user?.name }}님의 오늘 <span class="ml-1 text-[1rem] font-semibold text-sub">{{ labelOf(TRACK, ui.track) }}</span></h1>
       </div>
       <div class="flex gap-2">
         <div v-for="s in stats" :key="s.label" class="card min-w-[92px] px-4 py-2.5">

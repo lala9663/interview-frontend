@@ -285,6 +285,95 @@
 
 권한: 조회는 로그인한 사용자 모두. 면접 단위의 쓰기(방, 평가, 질문, 브리핑 생성, 보고서 재생성, 면접 수정)는 배정된 면접관 또는 ADMIN. 면접은 배정된 면접관이 모두 평가를 제출하면 `DONE`이 된다.
 
+### 2.11 관리자 집계 (ADMIN)
+
+읽기 전용 집계다. 세 엔드포인트 모두 `recruitmentId`가 필수이고 ADMIN만 부를 수 있다. 비율은 0~1, 분모가 0이면 `null`. 평균·표준편차는 소수 둘째 자리까지.
+
+| 메서드 | 경로 | 설명 |
+| --- | --- | --- |
+| GET | `/admin/operations?recruitmentId=&date=` | 당일 운영 현황판. `date`(YYYY-MM-DD)를 생략하면 오늘 |
+| GET | `/admin/quality?recruitmentId=` | AI 품질 점검: AI 점수와 면접관 점수의 차이, 꼬리질문 채택률, 화자 판정, 질문 매칭, 보고서 소요 시간 |
+| GET | `/admin/interviewer-stats?recruitmentId=` | 면접관 편차: 면접관별 점수 분포와 평균의 차이 |
+
+```json
+// GET /admin/operations
+{ "date": "2026-11-13", "generatedAt": "...",
+  "agent": { "status": "UP", "rooms": 3,
+             "providers": [ { "role": "stt.live", "health": "OK", "waiting": 0 } ] },
+  "summary": { "total": 40, "waiting": 0, "scheduled": 20, "live": 5, "evaluating": 3, "done": 12, "attention": 2 },
+  "items": [ {
+      "interview": { /* 2.5의 Interview */ },
+      "startedAt": "...", "endedAt": null,
+      "elapsedMinutes": 12,        // 방을 시작한 뒤 지난 시간(LIVE). 끝났으면 진행한 시간
+      "lateMinutes": 0,            // 예정 시각보다 늦은 시간. 아직 시작 전이면 지금까지 늦은 시간
+      "overtimeMinutes": 0,        // 예정 길이를 넘긴 시간
+      "utteranceCount": 31, "lastUtteranceAt": "...",
+      "silentMinutes": 0,          // LIVE일 때 마지막 전사(없으면 시작) 뒤 지난 시간
+      "audioConnected": true,      // Agent가 아는 마이크 연결 상태. Agent가 그 방을 모르면 null
+      "queueDepth": 0, "droppedChunks": 0,
+      "alerts": ["OVERTIME"] } ] }
+```
+
+`alerts` 값(기준은 백엔드 설정 `app.operations.*`):
+
+| 값 | 뜻 | 기본 기준 |
+| --- | --- | --- |
+| `NOT_STARTED` | 예정 시각이 지났는데 시작하지 않음 | 5분 |
+| `OVERTIME` | 예정 길이를 넘겨 진행 중 | 5분 |
+| `NO_AUDIO` | 진행 중인데 마이크 단말이 붙어 있지 않음 | Agent 기준 |
+| `SILENT` | 진행 중인데 전사가 한동안 없음(마이크·STT 문제 가능성) | 3분 |
+| `STT_BACKLOG` | 전사 대기가 밀리거나 건너뛴 구간이 있음 | 대기 5 이상 또는 건너뜀 1 이상 |
+| `JOB_FAILED` | 이 면접의 가장 최근 AI 평가·보고서 작업이 실패 | - |
+| `AGENT_DOWN` | Agent에 연결할 수 없음(진행 중인 방에만 붙는다) | - |
+
+값이 없을 때: `elapsedMinutes`는 시작 전이면 null, `lateMinutes`·`overtimeMinutes`·`silentMinutes`·`queueDepth`·`droppedChunks`는 해당 없으면 0. Agent가 DOWN이면 `agent.rooms`는 null, `providers`는 빈 배열. 늦게 시작한 면접은 `lateMinutes`로만 알 수 있고 alert는 붙지 않는다(이미 시작했으므로). 전사 시각은 백엔드가 저장한 시각 기준이다.
+
+`summary.attention`은 `alerts`가 하나라도 있는 면접 수다. `items`는 `alerts`가 있는 것 먼저, 그다음 예정 시각 순. Agent가 여러 대면 `agent`와 방별 연결 정보는 백엔드가 물어본 한 대의 것이라, 다른 대가 맡은 방은 `audioConnected: null`로 온다.
+
+```json
+// GET /admin/quality
+{ "generatedAt": "...", "endedInterviewCount": 42,
+  "scoreGap": {                       // AI 점수와 면접관 점수(제출된 평가의 평균). 면접 × 평가 항목 단위로 비교
+    "comparedCount": 120,
+    "meanDiff": 0.21,                 // AI - 면접관. 양수면 AI가 후하다
+    "meanAbsDiff": 0.64,
+    "withinOneRate": 0.91,            // 차이가 1점 이내인 비율
+    "byCriterion": [ { "criterionCode": "PROBLEM_SOLVING", "criterionName": "문제 해결", "comparedCount": 30,
+                       "aiMean": 3.8, "interviewerMean": 3.6, "meanDiff": 0.2, "meanAbsDiff": 0.6 } ] },
+  "aiCoverage": { "expected": 168, "scored": 150, "rate": 0.89 },   // AI가 근거를 찾아 점수를 낸 항목의 비율
+  "followUps": { "suggested": 310, "used": 58, "adoptionRate": 0.19, "roomCount": 40 },
+  "speaker": { "utteranceCount": 2400,
+               "byMethod": { "MANUAL": 35, "QUESTION_MATCH": 210, "RULE": 1900, "LLM": 240, "CHANNEL": 0, "NONE": 15 },
+               "manualRate": 0.01,    // 사람이 화자를 지정하거나 고친 비율
+               "unknownRate": 0.01 }, // 화자를 정하지 못한 비율
+  "questions": { "prepared": 400, "asked": 260, "askedRate": 0.65, "autoMatched": 90, "autoMatchedRate": 0.35 },
+  "reports": { "liveCount": 42, "refinedCount": 40,
+               "liveSecondsMedian": 38, "liveSecondsMax": 95,        // 방 종료 → 초안 보고서
+               "refinedSecondsMedian": 240, "refinedSecondsMax": 610 }, // 방 종료 → 보정본 보고서
+  "jobs": [ { "type": "REPORT", "succeeded": 82, "failed": 1 } ] }
+```
+
+- `questions.autoMatchedRate`의 분모는 `asked`다(물은 질문 가운데 자동으로 인식된 비율).
+- `speaker`는 지금 저장된 전사(보정본이 있으면 보정본) 기준이다.
+
+```json
+// GET /admin/interviewer-stats
+{ "generatedAt": "...",
+  "overall": { "evaluationCount": 80, "meanScore": 3.62, "stdDev": 0.71 },   // 제출된 평가의 항목 점수 전체
+  "items": [ {
+      "interviewer": { "id": 2, "name": "박준호", "department": "SW개발1팀" },
+      "assignedCount": 14, "submittedCount": 12, "pendingCount": 2,   // pending = 면접은 끝났는데 미제출
+      "meanScore": 3.9, "stdDev": 0.5,
+      "deviationFromOverall": 0.28,     // meanScore - overall.meanScore
+      "deviationFromPeers": 0.35,       // 같은 면접을 본 다른 면접관들의 평균과의 차이의 평균. 비교할 면접이 없으면 null
+      "peerComparedCount": 10,
+      "scoreDistribution": { "1": 0, "2": 3, "3": 10, "4": 25, "5": 10 },
+      "gradeDistribution": { "A": 4, "B": 6, "C": 2 },
+      "byCriterion": [ { "criterionCode": "PROBLEM_SOLVING", "criterionName": "문제 해결", "meanScore": 4.0 } ] } ] }
+```
+
+제출된(`submitted: true`) 평가만 집계한다. `items`는 `submittedCount`가 많은 순. 점수가 없는 면접관도 배정이 있으면 포함한다(평균은 `null`).
+
 ## 3. 프론트 ↔ Agent WebSocket (`/ws/v1/rooms/{roomId}`)
 
 방마다 여러 단말이 붙을 수 있다(면접관 여러 명의 노트북). 마이크를 보내는 단말은 방에 하나(`audio: true` 입장권)이고, 나머지는 듣기만 한다. 모든 서버 → 클라이언트 이벤트는 방의 모든 단말에 간다(서버가 여러 대여도 Redis로 중계).

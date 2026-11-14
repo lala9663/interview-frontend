@@ -102,6 +102,23 @@ export const interviews = [
   I(203, 'PORTFOLIO', 1, 'ONLINE', 'SCHEDULED', dayOffset(1, 11), [1, 2]),
 ]
 
+// 신입 공채는 인원이 많다: 화면이 수십~수백 명에서도 읽히는지 보려고 가상의 면접자를 더 만든다.
+{
+  const family = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오']
+  const given = ['서준', '하윤', '도현', '지안', '시우', '수아', '예준', '하은', '주원', '서연', '건우', '채원']
+  const jobOf = [['SW', 'SW개발', [1, 2]], ['AI', 'AI연구', [1, 3]], ['HW', 'HW설계', [4, 3]]]
+  const states = ['DONE', 'DONE', 'EVALUATING', 'SCHEDULED', 'SCHEDULED', 'SCHEDULED', 'WAITING']
+  for (let i = 0; i < 64; i += 1) {
+    const [code, title, who] = jobOf[i % 3]
+    const id = 300 + i
+    candidates.push(N(id, `2026H-${String(1000 + i * 7).padStart(5, '0')}`, family[i % 12] + given[(i * 5) % 12], code, title, ['한빛대학교', '새솔대학교', '누리대학교', '가람대학교'][i % 4], '컴퓨터공학'))
+    const st = states[i % states.length]
+    const ended = st === 'DONE' || st === 'EVALUATING'
+    interviews.push(I(id, 'PT', 1, 'OFFLINE', st, st === 'WAITING' ? null : dayOffset(ended ? -1 - (i % 3) : i % 4, 9 + (i % 8)), who, ended ? { roomId: 9200 + i, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'REFINED' } : st === 'WAITING' ? { briefingStatus: null } : {}))
+    interviews.push(I(id, 'PERSONALITY', 2, 'OFFLINE', st === 'DONE' && i % 2 ? 'SCHEDULED' : 'WAITING', st === 'DONE' && i % 2 ? dayOffset(1 + (i % 3), 10 + (i % 6)) : null, [1], { briefingStatus: null }))
+  }
+}
+
 export const questionBank = [
   { id: 31, jobCode: 'SW', interviewType: 'PT', category: 'CS기초', text: '프로세스와 스레드의 차이를 설명해 주세요.' },
   { id: 32, jobCode: 'SW', interviewType: 'PT', category: 'CS기초', text: '교착 상태가 생기는 조건과 해결 방법은 무엇인가요?' },

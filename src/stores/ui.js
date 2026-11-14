@@ -15,16 +15,34 @@ const write = (k, v) => {
     /* 무시 */
   }
 }
+const readJson = (k, d) => {
+  try {
+    return JSON.parse(read(k, '')) || d
+  } catch {
+    return d
+  }
+}
 
 export const useUi = defineStore('ui', {
   state: () => ({
     theme: read('iv.theme', 'light'),
     recruitments: [],
-    recruitmentId: Number(read('iv.recruitment', 0)) || null,
+    // 위쪽 탭: 신입(NEW_GRAD) / 경력(EXPERIENCED). 모든 목록 화면이 이 값을 따른다.
+    track: read('iv.track', 'NEW_GRAD'),
+    // 트랙마다 마지막으로 보던 채용 { NEW_GRAD: 1, EXPERIENCED: 2 }
+    recruitmentByTrack: readJson('iv.recruitmentByTrack', {}),
     toasts: [],
   }),
   getters: {
-    recruitment: (s) => s.recruitments.find((r) => r.id === s.recruitmentId) || null,
+    tracks: (s) => ['NEW_GRAD', 'EXPERIENCED'].filter((t) => s.recruitments.some((r) => r.track === t)),
+    trackRecruitments: (s) => s.recruitments.filter((r) => r.track === s.track),
+    recruitment() {
+      const list = this.trackRecruitments
+      return list.find((r) => r.id === this.recruitmentByTrack[this.track]) || list[0] || null
+    },
+    recruitmentId() {
+      return this.recruitment?.id ?? null
+    },
   },
   actions: {
     applyTheme() {
@@ -37,11 +55,15 @@ export const useUi = defineStore('ui', {
     },
     async loadRecruitments() {
       this.recruitments = (await recruitmentApi.list()).items
-      if (!this.recruitments.some((r) => r.id === this.recruitmentId)) this.recruitmentId = this.recruitments[0]?.id ?? null
+      if (this.tracks.length && !this.tracks.includes(this.track)) this.selectTrack(this.tracks[0])
+    },
+    selectTrack(track) {
+      this.track = track
+      write('iv.track', track)
     },
     selectRecruitment(id) {
-      this.recruitmentId = id
-      write('iv.recruitment', String(id))
+      this.recruitmentByTrack = { ...this.recruitmentByTrack, [this.track]: id }
+      write('iv.recruitmentByTrack', JSON.stringify(this.recruitmentByTrack))
     },
     toast(message, tone = 'neutral') {
       const id = Date.now() + Math.random()

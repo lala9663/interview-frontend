@@ -2,6 +2,20 @@
 // 엔드포인트를 더할 때: 계약 문서 → 여기 → src/mocks/server.js(같은 경로) 순서로 고친다.
 import { http } from './http.js'
 
+/**
+ * 페이지가 있는 목록을 끝까지 읽는다(백엔드의 한 페이지 상한은 200).
+ * 예: fetchAll((p) => interviewApi.list({ recruitmentId, ...p }))
+ */
+export async function fetchAll(fn, { size = 200, max = 5000 } = {}) {
+  const items = []
+  for (let page = 0; items.length < max; page += 1) {
+    const res = await fn({ page, size })
+    items.push(...res.items)
+    if (!res.items.length || items.length >= (res.total ?? items.length)) break
+  }
+  return items
+}
+
 export const authApi = {
   devLogin: (employeeNo) => http.post('/auth/dev-login', { employeeNo }),
   logout: () => http.post('/auth/logout'),
@@ -24,6 +38,7 @@ export const candidateApi = {
     return http.upload(`/recruitments/${recruitmentId}/uploads`, form)
   },
   uploads: (recruitmentId) => http.get(`/recruitments/${recruitmentId}/uploads`),
+  uploadDetail: (uploadId) => http.get(`/uploads/${uploadId}`),
   template: () => http.blob('/uploads/template'),
   autoAssign: (recruitmentId) => http.post(`/recruitments/${recruitmentId}/assignments/auto`),
   addInterview: (candidateId, body) => http.post(`/candidates/${candidateId}/interviews`, body),
@@ -56,6 +71,13 @@ export const roomApi = {
   utterances: (id, afterSeq) => http.get(`/rooms/${id}/utterances`, { afterSeq }),
   followUps: (id) => http.get(`/rooms/${id}/follow-ups`),
   useFollowUp: (followUpId) => http.post(`/follow-ups/${followUpId}/use`),
+}
+
+// 관리자 집계(계약 2.11). 모두 ADMIN 전용, 읽기 전용.
+export const adminApi = {
+  operations: (recruitmentId, date) => http.get('/admin/operations', { recruitmentId, date }),
+  quality: (recruitmentId) => http.get('/admin/quality', { recruitmentId }),
+  interviewerStats: (recruitmentId) => http.get('/admin/interviewer-stats', { recruitmentId }),
 }
 
 export const miscApi = {

@@ -2,7 +2,7 @@
 // 로그인 뒤의 공통 틀: 왼쪽 좁은 메뉴 + 위쪽 채용 선택 줄. 면접 방과 로그인 화면은 이 틀을 쓰지 않는다(meta.bare).
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CalendarClock, Users, GitBranch, Library, Moon, Sun, LogOut, FlaskConical } from 'lucide-vue-next'
+import { CalendarClock, Users, GitBranch, Library, LayoutDashboard, Moon, Sun, LogOut, FlaskConical } from 'lucide-vue-next'
 import { useAuth } from '@/stores/auth.js'
 import { useUi } from '@/stores/ui.js'
 import { isMock } from '@/api/http.js'
@@ -15,14 +15,19 @@ const route = useRoute()
 const router = useRouter()
 
 // 메뉴를 더할 때 여기에 한 줄. match는 이 메뉴가 켜져 보일 라우트 이름들.
-const nav = [
+// admin: true인 메뉴는 관리자에게만 보인다.
+const allNav = [
   { to: { name: 'today' }, label: '오늘', icon: CalendarClock, match: ['today', 'prep', 'review'] },
   { to: { name: 'candidates' }, label: '면접자', icon: Users, match: ['candidates', 'candidate'] },
   { to: { name: 'pipeline' }, label: '전형 현황', icon: GitBranch, match: ['pipeline'] },
   { to: { name: 'bank' }, label: '질문 은행', icon: Library, match: ['bank'] },
+  { to: { name: 'admin' }, label: '관리', icon: LayoutDashboard, match: ['admin', 'admin-setup', 'admin-quality', 'admin-interviewers'], admin: true },
 ]
+const nav = computed(() => allNav.filter((item) => !item.admin || auth.isAdmin))
 const active = (item) => item.match.includes(route.name)
-const showRecruitment = computed(() => ['candidates', 'pipeline', 'today'].includes(route.name))
+// 신입/경력 탭은 목록 화면에서만 보인다. 면접 한 건의 화면(면접 전·후, 면접자 상세)에서는 숨긴다.
+const showTrackTabs = computed(() => ['today', 'candidates', 'pipeline'].includes(route.name) || String(route.name).startsWith('admin'))
+const TRACK_TAB = { NEW_GRAD: '신입 공채', EXPERIENCED: '경력 채용' }
 
 onMounted(() => ui.loadRecruitments().catch((e) => ui.fail(e)))
 
@@ -59,19 +64,33 @@ async function logout() {
 
     <div class="flex min-w-0 flex-1 flex-col">
       <header class="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface/80 px-5 backdrop-blur">
-        <div v-if="showRecruitment && ui.recruitments.length" class="flex items-center gap-1 rounded-xl bg-sunken p-1">
-          <button
-            v-for="r in ui.recruitments"
-            :key="r.id"
-            class="flex h-8 items-center gap-1.5 rounded-lg px-3 text-[0.9rem] font-semibold transition"
-            :class="r.id === ui.recruitmentId ? 'bg-surface text-ink shadow-card' : 'text-sub hover:text-ink'"
-            @click="ui.selectRecruitment(r.id)"
+        <template v-if="showTrackTabs && ui.tracks.length">
+          <div class="flex h-full items-stretch gap-1" role="tablist" aria-label="채용 구분">
+            <button
+              v-for="t in ui.tracks"
+              :key="t"
+              class="relative flex items-center gap-2 px-4 text-[1rem] font-bold transition"
+              :class="t === ui.track ? 'text-ink' : 'text-faint hover:text-sub'"
+              role="tab"
+              :aria-selected="t === ui.track"
+              @click="ui.selectTrack(t)"
+            >
+              <span class="h-2 w-2 rounded-full" :class="t === 'NEW_GRAD' ? 'bg-brand' : 'bg-ok'" />
+              {{ TRACK_TAB[t] || TRACK[t]?.label }}
+              <span v-if="t === ui.track" class="absolute inset-x-2 bottom-0 h-[3px] rounded-t-full" :class="t === 'NEW_GRAD' ? 'bg-brand' : 'bg-ok'" />
+            </button>
+          </div>
+          <select
+            v-if="ui.trackRecruitments.length > 1"
+            class="input h-8 w-auto max-w-[260px] text-[0.88rem]"
+            aria-label="채용 선택"
+            :value="ui.recruitmentId"
+            @change="ui.selectRecruitment(Number($event.target.value))"
           >
-            <span class="h-1.5 w-1.5 rounded-full" :class="r.track === 'NEW_GRAD' ? 'bg-brand' : 'bg-ok'" />
-            {{ r.title }}
-            <span class="text-[0.76rem] font-medium text-faint">{{ TRACK[r.track]?.label }}</span>
-          </button>
-        </div>
+            <option v-for="r in ui.trackRecruitments" :key="r.id" :value="r.id">{{ r.title }}</option>
+          </select>
+          <span v-else class="hidden text-[0.86rem] text-faint md:inline">{{ ui.recruitment?.title }}</span>
+        </template>
         <slot name="title" />
         <div class="ml-auto flex items-center gap-3">
           <span v-if="isMock" class="badge tone-warn" title="백엔드 없이 모의 데이터로 동작 중"><FlaskConical :size="13" />모의 데이터</span>

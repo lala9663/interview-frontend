@@ -2,6 +2,7 @@
 // 경로와 응답 모양은 계약 문서와 같게 유지한다. 엔드포인트를 더하면 routes 배열에 한 줄을 더한다.
 import { ApiError } from '@/api/http.js'
 import * as D from './data.js'
+import { adminRoutes } from './admin.js'
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 const clone = (x) => JSON.parse(JSON.stringify(x))
@@ -107,6 +108,12 @@ export const mockStore = {
   },
 }
 
+function paged(all, params) {
+  const size = Math.min(200, Number(params?.size) || 20)
+  const page = Number(params?.page) || 0
+  return { items: all.slice(page * size, (page + 1) * size), page, size, total: all.length }
+}
+
 // ---- 라우트 ----
 const routes = [
   ['POST', '/auth/dev-login', (_, { body }) => {
@@ -131,8 +138,9 @@ const routes = [
     let rows = db.candidates.filter((c) => c.recruitmentId === Number(id))
     if (params?.jobCode) rows = rows.filter((c) => c.jobCode === params.jobCode)
     if (params?.q) rows = rows.filter((c) => (c.name + c.applicantNo).includes(params.q))
-    const items = rows.map(candidateRow)
-    return { items, page: 0, size: items.length, total: items.length }
+    let all = rows.map(candidateRow)
+    if (params?.status) all = all.filter((c) => c.currentStage?.status === params.status)
+    return paged(all, params)
   }],
   ['GET', '/candidates/:id', ([id]) => {
     const c = cand(id)
@@ -172,7 +180,8 @@ const routes = [
     db.uploads.unshift(batch)
     return batch
   }],
-  ['GET', '/recruitments/:id/uploads', () => ({ items: db.uploads })],
+  ['GET', '/recruitments/:id/uploads', () => ({ items: db.uploads.map((u) => ({ ...u, errors: [] })) })],
+  ['GET', '/uploads/:id', ([id]) => db.uploads.find((u) => u.id === Number(id))],
   ['POST', '/recruitments/:id/assignments/auto', async ([id]) => {
     await wait(600)
     let assigned = 0
@@ -184,7 +193,7 @@ const routes = [
       it.briefingStatus = 'SUCCEEDED'
       assigned += 1
     })
-    return { assignedInterviews: assigned, unassigned: 0 }
+    return { candidateCount: db.candidates.filter((c) => c.recruitmentId === Number(id)).length, createdInterviewCount: 0, assignedInterviewCount: assigned, unassignedInterviewCount: 0, briefingJobCount: assigned, unassigned: [] }
   }],
 
   ['GET', '/interviews', (_, { params }) => {
@@ -192,8 +201,7 @@ const routes = [
     if (params?.mine === true || params?.mine === 'true') rows = rows.filter((i) => i.interviewerIds.includes(db.me?.id || 1))
     if (params?.status) rows = rows.filter((i) => i.status === params.status)
     if (params?.recruitmentId) rows = rows.filter((i) => cand(i.candidateId).recruitmentId === Number(params.recruitmentId))
-    const items = rows.map(interviewView)
-    return { items, page: 0, size: items.length, total: items.length }
+    return paged(rows.map(interviewView), params)
   }],
   ['GET', '/interviews/:id', ([id]) => interviewView(intv(id))],
   ['GET', '/interviews/:id/briefing', ([id]) => {
@@ -304,15 +312,25 @@ const routes = [
   ['GET', '/interviews/:id/jobs', ([id]) => ({ items: [...db.jobs.values()].filter((j) => j.interviewId === Number(id)) })],
   ['GET', '/ai-jobs/:id', ([id]) => db.jobs.get(Number(id))],
 
-  ['GET', '/dashboard/summary', () => {
-    const mine = db.interviews.filter((i) => i.interviewerIds.includes(db.me?.id || 1)).map(interviewView)
+  ['GET', '/dashboard/summary', (_, { params }) => {
+    const admin = (db.me?.role || 'ADMIN') === 'ADMIN'
+    const rows = db.interviews
+      .filter((i) => !params?.recruitmentId || cand(i.candidateId).recruitmentId === Number(params.recruitmentId))
+      .filter((i) => admin || i.interviewerIds.includes(db.me?.id))
+      .map(interviewView)
+    const today = new Date().toDateString()
+    const todayInterviews = rows.filter((i) => i.scheduledAt && new Date(i.scheduledAt).toDateString() === today)
+    const liveRooms = rows.filter((i) => i.status === 'IN_PROGRESS')
+    const pendingEvaluations = rows.filter((i) => i.status === 'EVALUATING')
+    const pendingReports = rows.filter((i) => i.reportStatus === 'RUNNING')
     return {
-      todayCount: mine.filter((i) => i.scheduledAt && new Date(i.scheduledAt).toDateString() === new Date().toDateString()).length,
-      liveCount: mine.filter((i) => i.status === 'IN_PROGRESS').length,
-      evaluatingCount: mine.filter((i) => i.status === 'EVALUATING').length,
-      reportPendingCount: mine.filter((i) => i.reportStatus === 'RUNNING').length,
+      date: new Date().toISOString().slice(0, 10),
+      todayCount: todayInterviews.length, liveRoomCount: liveRooms.length,
+      pendingEvaluationCount: pendingEvaluations.length, pendingReportCount: pendingReports.length,
+      todayInterviews, liveRooms, pendingEvaluations, pendingReports,
     }
   }],
+  ...adminRoutes({ db, cand, interviewView }),
   ['GET', '/question-bank', (_, { params }) => ({
     items: db.bank.filter((q) => (!params?.jobCode || q.jobCode === params.jobCode) && (!params?.q || q.text.includes(params.q))),
   })],

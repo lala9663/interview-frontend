@@ -11,6 +11,11 @@ const routes = [
   { path: '/interviews/:id/room', name: 'room', component: () => import('@/features/room/RoomPage.vue'), props: true, meta: { bare: true } },
   { path: '/interviews/:id/review', name: 'review', component: () => import('@/features/review/ReviewPage.vue'), props: true },
   { path: '/pipeline', name: 'pipeline', component: () => import('@/features/pipeline/PipelinePage.vue') },
+  // 관리(관리자 전용). 하위 탭은 features/admin/AdminTabs.vue의 표와 맞춘다.
+  { path: '/admin', name: 'admin', component: () => import('@/features/admin/OperationsPage.vue'), meta: { admin: true } },
+  { path: '/admin/setup', name: 'admin-setup', component: () => import('@/features/admin/SetupPage.vue'), meta: { admin: true } },
+  { path: '/admin/quality', name: 'admin-quality', component: () => import('@/features/admin/QualityPage.vue'), meta: { admin: true } },
+  { path: '/admin/interviewers', name: 'admin-interviewers', component: () => import('@/features/admin/InterviewersPage.vue'), meta: { admin: true } },
   { path: '/question-bank', name: 'bank', component: () => import('@/features/bank/QuestionBankPage.vue') },
   { path: '/:rest(.*)*', redirect: '/' },
 ]
@@ -21,5 +26,7 @@ router.beforeEach((to) => {
   const auth = useAuth()
   if (!to.meta.public && !auth.isLoggedIn) return { name: 'login', query: to.fullPath !== '/' ? { next: to.fullPath } : {} }
   if (to.name === 'login' && auth.isLoggedIn) return { name: 'today' }
+  // 관리자 전용 화면. 실제 권한 검사는 백엔드가 한다.
+  if (to.meta.admin && !auth.isAdmin) return { name: 'today' }
   return true
 })

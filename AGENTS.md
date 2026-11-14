@@ -27,11 +27,11 @@ src/
   api/http.js        fetch 한 곳(토큰, 401 처리, mock 전환). 화면에서 직접 쓰지 않는다
   api/index.js       엔드포인트 함수(경로 문자열은 여기에만)
   mocks/             모의 백엔드(server.js), 모의 Agent 소켓(socket.js), 가상 데이터(data.js)
-  stores/            pinia: auth(로그인), ui(테마·채용 선택·토스트)
+  stores/            pinia: auth(로그인), ui(테마·신입/경력 탭과 채용 선택·토스트)
   lib/               labels.js(열거형→한국어·색), format.js(시각), poll.js(작업 대기)
   components/        여러 화면이 같이 쓰는 것(AppShell, InterviewHeader, PhaseSteps, StageTrack, Modal …)
   features/<기능>/   화면. 한 기능의 파일은 그 폴더 안에만 둔다
-    auth today candidates interview(면접 전) room(면접 중) review(면접 후) pipeline bank
+    auth today candidates interview(면접 전) room(면접 중) review(면접 후) pipeline bank admin(관리자 전용)
   router/index.js    라우트 표
   styles/main.css    색 토큰(CSS 변수)과 공용 클래스(.btn .card .badge .input …)
 public/audio/pcm16-worklet.js   마이크 → 16kHz PCM16 (AudioWorklet)
@@ -49,7 +49,9 @@ docs/                문서. docs/contract/api-contract.md가 API 계약 복사�
 7. 사용자에게 보이는 글은 한국어, 짧고 구체적으로. 오류는 "무엇이 안 됐고 무엇을 하면 되는지".
 8. 기능 사이의 import는 `components/`, `lib/`, `api/`, `stores/`를 거친다. `features/a`가 `features/b`의 내부 파일을 가져오지 않는다(예외: `review`가 `room/TranscriptPane.vue`를 읽기 전용으로 재사용).
 9. 실시간 방의 상태 변화는 `features/room/room-state.js`의 순수 함수에 넣고 테스트(`room-state.test.js`)를 더한다.
-10. 토큰·사용자 정보는 `sessionStorage`에만 둔다. 지원자 개인정보를 `localStorage`·URL 쿼리에 넣지 않는다.
+10. 목록 화면은 위쪽 탭의 채용(`ui.recruitmentId`)을 따른다: 그 값으로 읽고, `watch(() => ui.recruitmentId, …)`로 다시 읽는다. 목록은 수백 명을 가정한다: 백엔드 한 페이지 상한은 200이므로 서버 페이지를 쓰거나 `fetchAll`(`api/index.js`)로 끝까지 읽고, 화면에는 페이지를 둔다.
+11. 관리자 전용 화면은 라우트에 `meta: { admin: true }`, 메뉴에 `admin: true`를 준다(실제 권한 검사는 백엔드).
+12. 토큰·사용자 정보는 `sessionStorage`에만 둔다. 지원자 개인정보를 `localStorage`·URL 쿼리에 넣지 않는다.
 
 ## 화면을 더하는 순서
 
