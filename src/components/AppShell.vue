@@ -19,7 +19,7 @@ const router = useRouter()
 const allNav = [
   { to: { name: 'today' }, label: '오늘', icon: CalendarClock, match: ['today', 'prep', 'review'] },
   { to: { name: 'candidates' }, label: '면접자', icon: Users, match: ['candidates', 'candidate'] },
-  { to: { name: 'pipeline' }, label: '전형 현황', icon: GitBranch, match: ['pipeline'] },
+  { to: { name: 'pipeline' }, label: '진행 현황', icon: GitBranch, match: ['pipeline'] },
   { to: { name: 'bank' }, label: '질문 은행', icon: Library, match: ['bank'] },
   { to: { name: 'admin' }, label: '관리', icon: LayoutDashboard, match: ['admin', 'admin-setup', 'admin-quality', 'admin-interviewers'], admin: true },
 ]
@@ -39,17 +39,17 @@ async function logout() {
 
 <template>
   <div class="flex h-screen overflow-hidden">
-    <aside class="flex w-[76px] shrink-0 flex-col items-center border-r border-line bg-surface py-3">
-      <RouterLink :to="{ name: 'today' }" class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-white dark:text-[#0d0f16]" aria-label="홈">
-        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M4 8.5A3.5 3.5 0 0 1 7.5 5h9A3.5 3.5 0 0 1 20 8.5v5a3.5 3.5 0 0 1-3.5 3.5H12l-5 3.5V17A3.5 3.5 0 0 1 4 13.5z" /></svg>
+    <aside class="flex w-[76px] shrink-0 flex-col items-center border-r border-line bg-sunken/50 py-3">
+      <RouterLink :to="{ name: 'today' }" class="mb-4 flex h-9 w-9 items-center justify-center rounded-md bg-brand text-[0.84rem] font-extrabold tracking-tight text-white dark:text-[#0d0f16]" aria-label="DSInterview 홈">
+        DS
       </RouterLink>
       <nav class="flex flex-1 flex-col gap-1" aria-label="주 메뉴">
         <RouterLink
           v-for="item in nav"
           :key="item.label"
           :to="item.to"
-          class="flex w-[64px] flex-col items-center gap-1 rounded-xl py-2 text-[0.74rem] font-semibold transition"
-          :class="active(item) ? 'bg-brand-soft text-brand-ink' : 'text-sub hover:bg-sunken hover:text-ink'"
+          class="flex w-[64px] flex-col items-center gap-1 rounded-md py-2 text-[0.74rem] font-semibold transition"
+          :class="active(item) ? 'bg-surface text-brand shadow-[0_0_0_1px_rgb(var(--line))]' : 'text-sub hover:bg-sunken hover:text-ink'"
           :aria-current="active(item) ? 'page' : undefined"
         >
           <component :is="item.icon" :size="20" :stroke-width="active(item) ? 2.4 : 2" />
@@ -63,13 +63,15 @@ async function logout() {
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface/80 px-5 backdrop-blur">
+      <header class="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-5">
+        <span class="text-[1rem] font-extrabold tracking-[-0.02em]">DS<span class="text-brand">Interview</span></span>
+        <span class="h-4 w-px bg-line" />
         <template v-if="showTrackTabs && ui.tracks.length">
           <div class="flex h-full items-stretch gap-1" role="tablist" aria-label="채용 구분">
             <button
               v-for="t in ui.tracks"
               :key="t"
-              class="relative flex items-center gap-2 px-4 text-[1rem] font-bold transition"
+              class="relative flex items-center gap-2 px-3 text-[0.95rem] font-bold transition-colors"
               :class="t === ui.track ? 'text-ink' : 'text-faint hover:text-sub'"
               role="tab"
               :aria-selected="t === ui.track"
@@ -77,7 +79,7 @@ async function logout() {
             >
               <span class="h-2 w-2 rounded-full" :class="t === 'NEW_GRAD' ? 'bg-brand' : 'bg-ok'" />
               {{ TRACK_TAB[t] || TRACK[t]?.label }}
-              <span v-if="t === ui.track" class="absolute inset-x-2 bottom-0 h-[3px] rounded-t-full" :class="t === 'NEW_GRAD' ? 'bg-brand' : 'bg-ok'" />
+              <span v-if="t === ui.track" class="absolute inset-x-0 bottom-0 h-0.5 bg-ink" />
             </button>
           </div>
           <select
@@ -95,7 +97,7 @@ async function logout() {
         <div class="ml-auto flex items-center gap-3">
           <span v-if="isMock" class="badge tone-warn" title="백엔드 없이 모의 데이터로 동작 중"><FlaskConical :size="13" />모의 데이터</span>
           <div class="flex items-center gap-2">
-            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-soft text-[0.9rem] font-bold text-brand-ink">{{ initials(auth.user?.name) }}</span>
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-sunken text-[0.86rem] font-bold text-sub">{{ initials(auth.user?.name) }}</span>
             <div class="leading-tight">
               <p class="text-[0.9rem] font-semibold">{{ auth.user?.name }}</p>
               <p class="text-[0.76rem] text-faint">{{ auth.user?.department }} · {{ auth.isAdmin ? '관리자' : '면접관' }}</p>

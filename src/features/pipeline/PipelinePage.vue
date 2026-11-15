@@ -1,5 +1,5 @@
 <script setup>
-// 전형 현황: 면접자가 수백 명이어도 한눈에 보이도록 만든 화면.
+// 진행 현황: 면접자가 수백 명이어도 한눈에 보이도록 만든 화면.
 //  - 위: 면접 유형 × 상태 집계(누르면 그 조건으로 걸러진다)
 //  - 아래: 면접자 한 줄에 유형별 상태를 칸으로 보여 주는 촘촘한 표(검색·직무·내 면접·페이지)
 import { computed, onMounted, ref, watch } from 'vue'
@@ -114,7 +114,7 @@ const tone = (s) => INTERVIEW_STATUS[s]?.tone || 'neutral'
   <div class="space-y-4">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 class="h-page">전형 현황</h1>
+        <h1 class="h-page">진행 현황</h1>
         <p class="text-[0.9rem] text-sub">{{ ui.recruitment?.title }} · 면접자 {{ people.length }}명 · 면접 {{ interviews.length }}건</p>
       </div>
     </div>
@@ -134,7 +134,7 @@ const tone = (s) => INTERVIEW_STATUS[s]?.tone || 'neutral'
             <td class="td font-semibold">{{ labelOf(INTERVIEW_TYPE, t) }} <span class="ml-1 text-[0.8rem] font-normal text-faint">{{ totalOf(t) }}</span></td>
             <td v-for="s in STATUSES" :key="s" class="px-1.5 py-1.5 text-center">
               <button
-                class="h-9 w-full rounded-lg text-[1.02rem] font-bold tabular-nums transition"
+                class="h-9 w-full rounded text-[1.02rem] font-bold tabular-nums transition"
                 :class="[
                   matrix[t][s] ? `tone-${tone(s)} hover:brightness-95` : 'text-faint',
                   cell?.type === t && cell?.status === s ? 'ring-2 ring-brand ring-offset-1 ring-offset-surface' : '',
@@ -177,7 +177,7 @@ const tone = (s) => INTERVIEW_STATUS[s]?.tone || 'neutral'
         <span class="ml-auto text-[0.86rem] text-faint">{{ filtered.length }}명</span>
       </div>
 
-      <div v-if="loading && !people.length" class="space-y-2 p-4"><div v-for="n in 8" :key="n" class="h-9 animate-pulse rounded-lg bg-sunken" /></div>
+      <div v-if="loading && !people.length" class="space-y-2 p-4"><div v-for="n in 8" :key="n" class="h-9 animate-pulse rounded bg-sunken" /></div>
       <EmptyState v-else-if="!shown.length" title="해당하는 면접자가 없습니다" hint="조건을 바꾸거나, 관리 메뉴에서 면접자를 등록하고 면접관 매칭을 실행하세요.">
         <template #icon><GitBranch :size="22" /></template>
       </EmptyState>
@@ -198,7 +198,7 @@ const tone = (s) => INTERVIEW_STATUS[s]?.tone || 'neutral'
             </td>
             <td class="px-3 py-1.5 text-[0.88rem] text-sub">{{ p.candidate.jobTitle }}</td>
             <td v-for="t in types" :key="t" class="px-3 py-1.5">
-              <button v-if="p.byType[t]" class="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-sunken" :title="`${labelOf(INTERVIEW_TYPE, t)} 열기`" @click="open(p.byType[t])">
+              <button v-if="p.byType[t]" class="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-sunken" :title="`${labelOf(INTERVIEW_TYPE, t)} 열기`" @click="open(p.byType[t])">
                 <span class="badge h-[22px] px-2 text-[0.76rem]" :class="`tone-${tone(p.byType[t].status)}`">
                   <span v-if="p.byType[t].status === 'IN_PROGRESS'" class="h-1.5 w-1.5 animate-dot rounded-full bg-current" />{{ labelOf(INTERVIEW_STATUS, p.byType[t].status) }}
                 </span>

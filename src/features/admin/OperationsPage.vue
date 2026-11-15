@@ -113,7 +113,7 @@ function open(r) {
       </button>
     </div>
 
-    <div v-if="loading && !data" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"><div v-for="n in 8" :key="n" class="h-[132px] animate-pulse rounded-2xl bg-sunken" /></div>
+    <div v-if="loading && !data" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"><div v-for="n in 8" :key="n" class="h-[132px] animate-pulse rounded-lg bg-sunken" /></div>
     <div v-else-if="!rows.length" class="card">
       <EmptyState :title="view === 'ATTENTION' ? '확인이 필요한 면접이 없습니다' : '해당하는 면접이 없습니다'" :hint="view === 'ALL' ? '오늘 예정된 면접이 없습니다. 등록 · 매칭에서 면접자를 올리고 일정을 넣으세요.' : ''">
         <template #icon><CheckCircle2 v-if="view === 'ATTENTION'" :size="22" /><Activity v-else :size="22" /></template>

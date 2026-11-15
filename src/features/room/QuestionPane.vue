@@ -52,7 +52,7 @@ function add() {
 <template>
   <section class="flex min-h-0 flex-col">
     <header class="flex h-11 shrink-0 items-center justify-between border-b border-line px-3.5">
-      <h2 class="flex items-center gap-2 text-[0.93rem] font-bold"><ListChecks :size="16" class="text-brand" />질문 <span class="font-semibold text-faint">{{ askedCount }}/{{ visible.length }}</span></h2>
+      <h2 class="flex items-center gap-2 text-[0.93rem] font-bold"><ListChecks :size="16" class="text-faint" />질문 <span class="font-semibold text-faint">{{ askedCount }}/{{ visible.length }}</span></h2>
       <label class="flex cursor-pointer items-center gap-1.5 text-[0.8rem] font-medium text-sub">
         <input v-model="hideAsked" type="checkbox" class="h-3.5 w-3.5 accent-[rgb(var(--brand))]" />남은 것만
       </label>
@@ -64,12 +64,12 @@ function add() {
           <span class="flex items-center gap-1.5"><span class="h-3 w-[3px] rounded-full bg-brand" />{{ g.label }}</span>
           <span class="font-semibold tabular-nums" :class="g.asked === g.total ? 'text-ok' : 'text-faint'">{{ g.asked }}/{{ g.total }}</span>
         </h3>
-        <ol class="space-y-1.5 px-2.5 pb-2.5">
+        <ol class="px-1.5 pb-2">
           <li v-for="{ q, no } in g.rows" :key="q.id" :data-qid="q.id">
             <button
-              class="flex w-full gap-2.5 rounded-xl border px-3 py-2.5 text-left transition"
+              class="flex w-full gap-2.5 rounded-md px-2 py-2 text-left transition-colors"
               :class="[
-                q.asked ? 'border-transparent bg-sunken/70' : 'border-line bg-surface hover:border-brand/50',
+                q.asked ? '' : 'hover:bg-sunken',
                 q.id === highlightId ? 'ring-2 ring-ok/50' : '',
               ]"
               :disabled="readonly"

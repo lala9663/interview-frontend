@@ -40,7 +40,7 @@ const other = (s) => (s === 'CANDIDATE' ? 'INTERVIEWER' : 'CANDIDATE')
 <template>
   <section class="relative flex min-h-0 flex-1 flex-col">
     <header class="flex h-11 shrink-0 items-center justify-between border-b border-line px-4">
-      <h2 class="flex items-center gap-2 text-[0.93rem] font-bold"><AudioLines :size="16" class="text-brand" />대화</h2>
+      <h2 class="flex items-center gap-2 text-[0.93rem] font-bold"><AudioLines :size="16" class="text-faint" />대화</h2>
       <label class="flex cursor-pointer items-center gap-1.5 text-[0.82rem] font-medium text-sub">
         <input v-model="showRaw" type="checkbox" class="h-3.5 w-3.5 accent-[rgb(var(--brand))]" />다듬기 전 원문
       </label>

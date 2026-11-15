@@ -53,6 +53,7 @@ export function useRoom(interviewId) {
           if (e.type === 'ready') fillGap(e.lastSeq)
           if (e.type === 'error' && e.code === 'AUDIO_ALREADY_CONNECTED') audioOwner.value = false
           applyEvent(state, e)
+          if (e.type === 'followup.matched') onFollowUpSpoken(e)
         },
         onClose: (code) => {
           socket = null
@@ -118,6 +119,7 @@ export function useRoom(interviewId) {
   async function addQuestion(text) {
     const q = await interviewApi.addQuestion(interviewId, { text, category: '직접 추가' })
     state.questions.push(q)
+    send({ type: 'question.added', questionId: q.id }) // Agent 가 이 질문도 말로 인식하도록 알린다
     return q
   }
   /** 꼬리질문 후보를 질문 목록에 올린다 */
@@ -133,7 +135,30 @@ export function useRoom(interviewId) {
     }
     q ||= await interviewApi.addQuestion(interviewId, { text: item.text, category: '꼬리질문' })
     if (!state.questions.some((x) => x.id === q.id)) state.questions.push(q)
+    send({ type: 'question.added', questionId: q.id })
     return q
+  }
+  /**
+   * 면접관이 제안된 꼬리질문을 누르지 않고 말로 물었다(Agent 의 followup.matched).
+   * 누른 것과 똑같이 질문 목록에 올리고 "물었음"으로 표시한다.
+   * 저장은 마이크를 보내는 단말 하나만 한다(여러 단말이 동시에 올려 질문이 겹치지 않게). 나머지는 잠시 뒤 목록을 다시 읽는다.
+   */
+  async function onFollowUpSpoken(e) {
+    const item = state.followUps.flatMap((g) => g.items).find((f) => String(f.id) === String(e.id))
+    if (!item) return
+    try {
+      if (!audioOwner.value) {
+        item.used = true
+        setTimeout(async () => {
+          if (!disposed) state.questions = (await interviewApi.questions(interviewId)).items
+        }, 1500)
+        return
+      }
+      const q = (await adoptFollowUp(item)) || state.questions.find((x) => x.text === item.text)
+      if (q && !q.asked) await toggleAsked(q)
+    } catch {
+      /* 자동 채택이 실패해도 면접은 계속된다. 면접관이 눌러서 올릴 수 있다 */
+    }
   }
 
   onBeforeUnmount(() => {

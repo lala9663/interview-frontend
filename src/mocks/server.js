@@ -151,6 +151,7 @@ const routes = [
     if (params?.q) rows = rows.filter((c) => (c.name + c.applicantNo).includes(params.q))
     let all = rows.map(candidateRow)
     if (params?.status) all = all.filter((c) => c.currentStage?.status === params.status)
+    if (params?.type) all = all.filter((c) => c.currentStage?.type === params.type)
     return paged(all, params)
   }],
   ['GET', '/candidates/:id', ([id]) => {

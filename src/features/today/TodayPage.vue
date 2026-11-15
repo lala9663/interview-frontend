@@ -60,21 +60,20 @@ const action = (it) => ({ IN_PROGRESS: '면접 방으로', SCHEDULED: '준비하
         <p class="text-[0.9rem] font-medium text-sub">{{ md(new Date().toISOString()) }}</p>
         <h1 class="h-page">{{ auth.user?.name }}님의 오늘 <span class="ml-1 text-[1rem] font-semibold text-sub">{{ labelOf(TRACK, ui.track) }}</span></h1>
       </div>
-      <div class="flex gap-2">
-        <div v-for="s in stats" :key="s.label" class="card min-w-[92px] px-4 py-2.5">
+      <div class="flex">
+        <div v-for="s in stats" :key="s.label" class="min-w-[88px] border-l border-line px-4 first:border-0">
           <p class="text-[0.78rem] font-semibold text-faint">{{ s.label }}</p>
-          <p class="text-[1.5rem] font-bold leading-tight" :class="s.tone">{{ s.value }}</p>
+          <p class="text-[1.6rem] font-bold leading-tight tabular-nums tracking-[-0.02em]" :class="s.tone">{{ s.value }}</p>
         </div>
       </div>
     </div>
 
     <!-- 다음 면접 -->
-    <section v-if="next" class="card relative overflow-hidden p-5">
-      <div class="absolute inset-y-0 left-0 w-1.5" :class="next.status === 'IN_PROGRESS' ? 'bg-live' : 'bg-brand'" />
+    <section v-if="next" class="card p-5">
       <div class="flex flex-wrap items-center gap-5">
-        <div class="min-w-[92px] text-center">
+        <div class="min-w-[100px] border-r border-line pr-5">
           <p class="label">{{ next.status === 'IN_PROGRESS' ? '진행 중' : '다음 면접' }}</p>
-          <p class="text-[2rem] font-bold leading-tight tracking-tight">{{ hm(next.scheduledAt) }}</p>
+          <p class="text-[2.1rem] font-bold leading-tight tabular-nums tracking-[-0.03em]" :class="next.status === 'IN_PROGRESS' ? 'text-live' : ''">{{ hm(next.scheduledAt) }}</p>
           <p class="text-[0.84rem] text-sub">{{ next.durationMinutes }}분</p>
         </div>
         <div class="min-w-0 flex-1">
@@ -101,18 +100,18 @@ const action = (it) => ({ IN_PROGRESS: '면접 방으로', SCHEDULED: '준비하
 
     <div class="grid gap-5 lg:grid-cols-[1fr_340px]">
       <!-- 오늘 일정 -->
-      <section class="card">
-        <header class="flex items-center justify-between border-b border-line px-4 py-3">
+      <section>
+        <header class="flex items-center justify-between border-b border-line px-2 pb-2.5">
           <h2 class="h-sec">오늘 일정</h2>
           <span class="text-[0.86rem] text-faint">{{ todays.length }}건</span>
         </header>
-        <div v-if="loading" class="space-y-2 p-4"><div v-for="n in 4" :key="n" class="h-14 animate-pulse rounded-xl bg-sunken" /></div>
+        <div v-if="loading" class="space-y-2 py-3"><div v-for="n in 4" :key="n" class="h-14 animate-pulse rounded-md bg-sunken" /></div>
         <EmptyState v-else-if="!todays.length" title="오늘 예정된 면접이 없습니다" hint="면접자 메뉴에서 면접을 등록하거나 면접관 매칭을 실행하세요.">
           <template #icon><CalendarClock :size="22" /></template>
         </EmptyState>
         <ul v-else>
           <li v-for="it in todays" :key="it.id">
-            <button class="row-line flex w-full items-center gap-4 px-4 py-3 text-left" @click="go(it)">
+            <button class="row-line flex w-full items-center gap-4 px-2 py-3 text-left" @click="go(it)">
               <span class="w-14 text-[1.05rem] font-bold tabular-nums" :class="it.status === 'DONE' ? 'text-faint' : ''">{{ hm(it.scheduledAt) }}</span>
               <span class="min-w-0 flex-1">
                 <span class="block truncate font-semibold">{{ it.candidate.name }} <span class="font-normal text-sub">· {{ it.candidate.jobTitle }}</span></span>
@@ -126,15 +125,15 @@ const action = (it) => ({ IN_PROGRESS: '면접 방으로', SCHEDULED: '준비하
       </section>
 
       <div class="space-y-5">
-        <section class="card">
-          <header class="flex items-center justify-between border-b border-line px-4 py-3">
+        <section>
+          <header class="flex items-center justify-between border-b border-line px-2 pb-2.5">
             <h2 class="h-sec">평가를 기다리는 면접</h2>
             <span class="badge tone-warn">{{ toEvaluate.length }}</span>
           </header>
-          <p v-if="!toEvaluate.length" class="px-4 py-5 text-[0.9rem] text-sub">남은 평가가 없습니다.</p>
+          <p v-if="!toEvaluate.length" class="px-2 py-5 text-[0.9rem] text-sub">남은 평가가 없습니다.</p>
           <ul v-else>
             <li v-for="it in toEvaluate" :key="it.id">
-              <button class="row-line flex w-full items-center gap-3 px-4 py-2.5 text-left" @click="go(it)">
+              <button class="row-line flex w-full items-center gap-3 px-2 py-2.5 text-left" @click="go(it)">
                 <span class="min-w-0 flex-1">
                   <span class="block truncate font-semibold">{{ it.candidate.name }}</span>
                   <span class="text-[0.82rem] text-faint">{{ labelOf(INTERVIEW_TYPE, it.type) }} · {{ mdhm(it.scheduledAt) }}</span>
@@ -147,12 +146,12 @@ const action = (it) => ({ IN_PROGRESS: '면접 방으로', SCHEDULED: '준비하
           </ul>
         </section>
 
-        <section class="card">
-          <header class="border-b border-line px-4 py-3"><h2 class="h-sec">다가오는 면접</h2></header>
-          <p v-if="!upcoming.length" class="px-4 py-5 text-[0.9rem] text-sub">예정된 면접이 없습니다.</p>
+        <section>
+          <header class="border-b border-line px-2 pb-2.5"><h2 class="h-sec">다가오는 면접</h2></header>
+          <p v-if="!upcoming.length" class="px-2 py-5 text-[0.9rem] text-sub">예정된 면접이 없습니다.</p>
           <ul v-else>
             <li v-for="it in upcoming" :key="it.id">
-              <button class="row-line flex w-full items-center gap-3 px-4 py-2.5 text-left" @click="go(it)">
+              <button class="row-line flex w-full items-center gap-3 px-2 py-2.5 text-left" @click="go(it)">
                 <Clock :size="16" class="text-faint" />
                 <span class="min-w-0 flex-1">
                   <span class="block truncate font-semibold">{{ it.candidate.name }}</span>

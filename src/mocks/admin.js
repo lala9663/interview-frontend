@@ -65,7 +65,7 @@ export function adminRoutes({ db, cand, interviewView }) {
         aiCoverage: { expected: 0, scored: 0, rate: null },
         followUps: { suggested: 0, used: 0, adoptionRate: null, roomCount: 0 },
         speaker: { utteranceCount: 0, byMethod: {}, manualRate: null, unknownRate: null },
-        questions: { prepared: 0, asked: 0, askedRate: null, autoMatched: 0, autoMatchedRate: null },
+        questions: { prepared: 0, asked: 0, askedRate: null, autoMatched: 0, autoMatchedRate: null, bySource: ['JD', 'RESUME', 'BANK'].map((source) => ({ source, prepared: 0, asked: 0, askedRate: null })) },
         reports: { liveCount: 0, refinedCount: 0, liveSecondsMedian: null, liveSecondsMax: null, refinedSecondsMedian: null, refinedSecondsMax: null },
         jobs: [],
       }
@@ -85,7 +85,10 @@ export function adminRoutes({ db, cand, interviewView }) {
         byMethod: { RULE: Math.round(utter * 0.74), QUESTION_MATCH: Math.round(utter * 0.11), LLM: Math.round(utter * 0.1), CHANNEL: 0, MANUAL: Math.round(utter * 0.03), NONE: Math.round(utter * 0.02) },
         manualRate: 0.03, unknownRate: 0.02,
       },
-      questions: { prepared: ended * 7, asked: Math.round(ended * 4.6), askedRate: 0.66, autoMatched: Math.round(ended * 1.7), autoMatchedRate: 0.37 },
+      questions: {
+        prepared: ended * 7, asked: Math.round(ended * 4.6), askedRate: 0.66, autoMatched: Math.round(ended * 1.7), autoMatchedRate: 0.37,
+        bySource: [['JD', 2, 1.1], ['RESUME', 3, 2.4], ['BANK', 2, 1.1]].map(([source, p, a]) => ({ source, prepared: ended * p, asked: Math.round(ended * a), askedRate: round2(a / p) })),
+      },
       reports: { liveCount: ended, refinedCount: Math.max(0, ended - 1), liveSecondsMedian: 41, liveSecondsMax: 133, refinedSecondsMedian: 252, refinedSecondsMax: 640 },
       jobs: [{ type: 'BRIEFING', succeeded: ended + 30, failed: 1 }, { type: 'AI_EVALUATION', succeeded: ended * 2 - 1, failed: 0 }, { type: 'REPORT', succeeded: ended * 2 - 1, failed: 2 }],
     }

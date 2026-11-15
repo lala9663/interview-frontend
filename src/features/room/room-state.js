@@ -5,7 +5,7 @@ export function createRoomState() {
   return {
     utterances: [], // seq 오름차순
     partial: null, // { seq, text }
-    followUps: [], // [{ basedOnSeq, items: [{ id, text, rationale, used }] }] 최신이 앞
+    followUps: [], // [{ basedOnSeq, items: [{ id, text, rationale, used, spoken }] }] 최신이 앞. spoken = 말로 물어 자동 채택됨
     questions: [],
     lastMatchedQuestionId: null,
     status: { stt: 'OK', llm: 'OK', queueDepth: 0, audioConnected: false },
@@ -64,6 +64,12 @@ export function applyEvent(state, e) {
         ...state.followUps.filter((g) => g.basedOnSeq !== e.basedOnSeq),
       ].slice(0, MAX_FOLLOW_UP_GROUPS)
       break
+    case 'followup.matched': {
+      // 면접관이 제안된 꼬리질문을 말로 물었다. 표시만 남기고, 질문 목록에 올리는 일은 use-room.js 가 한다.
+      const item = state.followUps.flatMap((g) => g.items).find((x) => String(x.id) === String(e.id))
+      if (item) Object.assign(item, { spoken: true, spokenAtSeq: e.seq })
+      break
+    }
     case 'status':
       state.status = { ...state.status, ...e }
       delete state.status.type

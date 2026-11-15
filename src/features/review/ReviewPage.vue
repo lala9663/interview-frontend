@@ -108,7 +108,7 @@ const evidence = (seqs) => utterances.value.filter((u) => seqs?.includes(u.seq))
             <button v-if="interview.roomStatus === 'ENDED'" class="btn btn-primary" @click="regenerate"><Sparkles :size="16" />보고서 만들기</button>
           </EmptyState>
           <template v-else>
-            <p v-if="waitingRefined" class="mb-4 flex items-center gap-2 rounded-xl bg-warn-soft px-3.5 py-2.5 text-[0.9rem] font-medium text-warn">
+            <p v-if="waitingRefined" class="mb-4 flex items-center gap-2 rounded-md bg-warn-soft px-3.5 py-2.5 text-[0.9rem] font-medium text-warn">
               <RefreshCw :size="15" class="animate-spin" />실시간 전사로 만든 초안입니다. 녹취를 다시 정리한 보정본이 준비되면 자동으로 바뀝니다.
             </p>
             <ReportView :content="report.content" @jump="jump" />
@@ -121,17 +121,17 @@ const evidence = (seqs) => utterances.value.filter((u) => seqs?.includes(u.seq))
           <p v-if="!aiReady" class="flex items-center gap-2 py-6 font-semibold text-sub"><RefreshCw v-if="interview.roomStatus === 'ENDED'" :size="16" class="animate-spin" />{{ interview.roomStatus === 'ENDED' ? 'AI 참고 평가를 만드는 중입니다…' : '면접이 끝나면 만들어집니다.' }}</p>
           <div v-else class="space-y-4">
             <p class="leading-relaxed text-sub">{{ ai.overallComment }}</p>
-            <div v-for="s in ai.scores" :key="s.criterionCode" class="rounded-xl border border-line p-3.5">
+            <div v-for="s in ai.scores" :key="s.criterionCode" class="border-b border-line pb-4 last:border-0">
               <div class="flex items-center justify-between gap-3">
                 <p class="font-semibold">{{ s.criterionName || criteria.find((c) => c.code === s.criterionCode)?.name || s.criterionCode }}</p>
                 <div v-if="s.score" class="flex items-center gap-2">
-                  <div class="flex gap-1"><span v-for="n in s.maxScore || 5" :key="n" class="h-2 w-6 rounded-full" :class="n <= s.score ? 'bg-brand' : 'bg-sunken'" /></div>
+                  <div class="flex gap-1"><span v-for="n in s.maxScore || 5" :key="n" class="h-1.5 w-6 rounded-sm" :class="n <= s.score ? 'bg-brand' : 'bg-sunken'" /></div>
                   <span class="w-9 text-right font-bold tabular-nums">{{ s.score }}<span class="text-[0.8rem] font-medium text-faint">/{{ s.maxScore || 5 }}</span></span>
                 </div>
                 <span v-else class="badge tone-neutral">근거 부족</span>
               </div>
               <p class="mt-1.5 leading-relaxed text-sub">{{ s.rationale }}</p>
-              <button v-for="u in evidence(s.evidenceSeqs)" :key="u.seq" class="mt-2 block w-full rounded-lg border-l-2 border-brand/40 bg-sunken/60 px-3 py-1.5 text-left text-[0.88rem] text-sub hover:bg-sunken" @click="jump(u.seq)">
+              <button v-for="u in evidence(s.evidenceSeqs)" :key="u.seq" class="mt-2 block w-full rounded border-l-2 border-brand/40 bg-sunken/60 px-3 py-1.5 text-left text-[0.88rem] text-sub hover:bg-sunken" @click="jump(u.seq)">
                 “{{ u.refinedText || u.rawText }}”
               </button>
             </div>
@@ -148,5 +148,5 @@ const evidence = (seqs) => utterances.value.filter((u) => seqs?.includes(u.seq))
       <MyEvaluationPanel class="lg:sticky lg:top-0" :interview-id="id" :criteria="criteria" :ai-scores="ai?.scores || []" @submitted="load" />
     </div>
   </div>
-  <div v-else class="space-y-3"><div v-for="n in 3" :key="n" class="h-24 animate-pulse rounded-2xl bg-sunken" /></div>
+  <div v-else class="space-y-3"><div v-for="n in 3" :key="n" class="h-24 animate-pulse rounded-lg bg-sunken" /></div>
 </template>

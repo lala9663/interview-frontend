@@ -21,10 +21,22 @@ const page = ref(0)
 const jobs = ref([])
 const loading = ref(false)
 const q = ref('')
-const jobCode = ref('')
+// 직무 필터의 처음 값: 면접관의 담당 직무(로그인 응답의 jobCodes)가 하나뿐이면 그 직무를 먼저 골라 둔다.
+// 담당 직무가 여러 개이거나 관리자면 고르지 않는다(필터가 하나만 고를 수 있고, 관리자는 전체를 본다).
+// 주의: jobCodes 는 지금 JD 기반 임시 매칭에 쓰는 값이다. 현업의 실제 매칭이 들어온 뒤 담당 직무와
+// 실제 배정이 어긋나 자기 면접자가 첫 화면에 안 보이는 문제가 생기면, 이 함수가 항상 '' 를 돌려주게 바꿔
+// "직무 전체"로 되돌린다(2026-11-15 결정).
+function defaultJobCode() {
+  const codes = auth.user?.jobCodes || []
+  return !auth.isAdmin && codes.length === 1 ? codes[0] : ''
+}
+const jobCode = ref(defaultJobCode())
 const status = ref('')
 const pages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 const statuses = ['SCHEDULED', 'IN_PROGRESS', 'EVALUATING', 'DONE', 'WAITING']
+// 면접 종류 탭: 신입은 PT·인성, 경력은 포트폴리오·직무·인성. "지금 차수" 면접의 종류로 거른다.
+const type = ref('')
+const types = computed(() => (ui.track === 'EXPERIENCED' ? ['PORTFOLIO', 'JOB', 'PERSONALITY'] : ['PT', 'PERSONALITY']))
 
 async function load() {
   const id = ui.recruitmentId
@@ -32,13 +44,15 @@ async function load() {
   loading.value = true
   try {
     const [list, jobList] = await Promise.all([
-      candidateApi.list(id, { q: q.value, jobCode: jobCode.value, status: status.value, page: page.value, size: PAGE_SIZE }),
+      candidateApi.list(id, { q: q.value, jobCode: jobCode.value, status: status.value, type: type.value, page: page.value, size: PAGE_SIZE }),
       recruitmentApi.jobs(id),
     ])
     if (id !== ui.recruitmentId) return
     rows.value = list.items
     total.value = list.total ?? list.items.length
     jobs.value = jobList.items
+    // 미리 고른 담당 직무가 이 채용에 없으면 "직무 전체"로 푼다(빈 목록으로 열리지 않게).
+    if (jobCode.value && !jobList.items.some((j) => j.jobCode === jobCode.value)) jobCode.value = ''
   } catch (e) {
     ui.fail(e)
   } finally {
@@ -51,11 +65,12 @@ const first = () => {
 }
 onMounted(load)
 watch(() => ui.recruitmentId, () => {
-  jobCode.value = q.value = status.value = ''
+  q.value = status.value = type.value = ''
+  jobCode.value = defaultJobCode()
   rows.value = []
   first()
 })
-watch([jobCode, status], first)
+watch([jobCode, status, type], first)
 let timer = null
 watch(q, () => {
   clearTimeout(timer)
@@ -91,9 +106,13 @@ function go(p) {
           <option value="">상태 전체</option>
           <option v-for="s in statuses" :key="s" :value="s">{{ labelOf(INTERVIEW_STATUS, s) }}</option>
         </select>
+        <div class="ml-1 flex items-center border-l border-line pl-2" role="tablist" aria-label="면접 종류">
+          <button class="tab h-9" :class="{ 'tab-on': !type }" role="tab" :aria-selected="!type" @click="type = ''">전체</button>
+          <button v-for="t in types" :key="t" class="tab h-9" :class="{ 'tab-on': type === t }" role="tab" :aria-selected="type === t" @click="type = t">{{ labelOf(INTERVIEW_TYPE, t) }}</button>
+        </div>
       </div>
 
-      <div v-if="loading && !rows.length" class="space-y-2 p-4"><div v-for="n in 6" :key="n" class="h-11 animate-pulse rounded-xl bg-sunken" /></div>
+      <div v-if="loading && !rows.length" class="space-y-2 p-4"><div v-for="n in 6" :key="n" class="h-11 animate-pulse rounded-md bg-sunken" /></div>
       <EmptyState v-else-if="!rows.length" title="해당하는 면접자가 없습니다" :hint="auth.isAdmin ? '관리 메뉴에서 면접 대상자 엑셀을 올리면 여기에 보입니다.' : '조건을 바꿔 보세요.'">
         <template #icon><Users :size="22" /></template>
       </EmptyState>

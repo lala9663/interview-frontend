@@ -96,11 +96,11 @@ async function hide(q) {
             </ul>
           </div>
           <div class="grid gap-3 sm:grid-cols-2">
-            <div class="rounded-xl bg-ok-soft/60 p-3">
+            <div class="rounded-md bg-ok-soft/60 p-3">
               <p class="mb-1.5 flex items-center gap-1.5 text-[0.84rem] font-bold text-ok"><CheckCircle2 :size="15" />강점</p>
               <ul class="space-y-1 text-[0.93rem] leading-relaxed"><li v-for="(x, i) in briefing.summary.strengths" :key="i">{{ x }}</li></ul>
             </div>
-            <div class="rounded-xl bg-warn-soft/60 p-3">
+            <div class="rounded-md bg-warn-soft/60 p-3">
               <p class="mb-1.5 flex items-center gap-1.5 text-[0.84rem] font-bold text-warn"><HelpCircle :size="15" />확인할 점</p>
               <ul class="space-y-1 text-[0.93rem] leading-relaxed"><li v-for="(x, i) in briefing.summary.checkPoints" :key="i">{{ x }}</li></ul>
             </div>
@@ -151,5 +151,5 @@ async function hide(q) {
       <button class="btn btn-primary btn-lg shadow-pop" @click="router.push({ name: 'room', params: { id: interview.id } })"><Mic :size="18" />면접 방 입장</button>
     </div>
   </div>
-  <div v-else class="space-y-3"><div v-for="n in 3" :key="n" class="h-24 animate-pulse rounded-2xl bg-sunken" /></div>
+  <div v-else class="space-y-3"><div v-for="n in 3" :key="n" class="h-24 animate-pulse rounded-lg bg-sunken" /></div>
 </template>

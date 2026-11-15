@@ -14,7 +14,7 @@ const dot = (s) =>
 <template>
   <ol class="flex items-start">
     <li v-for="(it, i) in interviews" :key="it.id" class="flex min-w-0 flex-1 items-start">
-      <button class="group flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl px-1 py-1 text-center hover:bg-sunken" @click="emit('open', it)">
+      <button class="group flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-md px-1 py-1 text-center hover:bg-sunken" @click="emit('open', it)">
         <span class="flex w-full items-center">
           <span class="h-0.5 flex-1" :class="i === 0 ? 'bg-transparent' : it.status === 'WAITING' ? 'bg-line' : 'bg-ok/50'" />
           <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0.8rem] font-bold" :class="[dot(it.status), it.status === 'IN_PROGRESS' ? 'animate-dot' : '']">

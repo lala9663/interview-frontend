@@ -49,7 +49,7 @@ async function addInterview() {
 
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-xl font-bold text-brand-ink">{{ c.name.slice(0, 1) }}</span>
+        <span class="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-soft text-xl font-bold text-brand-ink">{{ c.name.slice(0, 1) }}</span>
         <div>
           <h1 class="h-page leading-tight">{{ c.name }}</h1>
           <p class="text-[0.9rem] text-sub">
@@ -86,7 +86,7 @@ async function addInterview() {
             <p class="label pt-1">{{ PROFILE_EXTRA[k] || k }}</p><p class="text-[0.93rem]">{{ v }}</p>
           </template>
         </section>
-        <section v-if="c.blindedFields?.length" class="rounded-2xl border border-dashed border-line px-4 py-3">
+        <section v-if="c.blindedFields?.length" class="rounded-lg border border-dashed border-line px-4 py-3">
           <p class="mb-1.5 flex items-center gap-1.5 text-[0.88rem] font-semibold text-sub"><EyeOff :size="15" />블라인드 처리된 항목</p>
           <p class="text-[0.86rem] text-faint">{{ c.blindedFields.map((f) => BLIND_FIELD[f] || f).join(', ') }} — 화면과 AI 요약·질문에서 제외됩니다.</p>
         </section>
@@ -143,5 +143,5 @@ async function addInterview() {
       </template>
     </Modal>
   </div>
-  <div v-else class="space-y-3"><div v-for="n in 3" :key="n" class="h-24 animate-pulse rounded-2xl bg-sunken" /></div>
+  <div v-else class="space-y-3"><div v-for="n in 3" :key="n" class="h-24 animate-pulse rounded-lg bg-sunken" /></div>
 </template>

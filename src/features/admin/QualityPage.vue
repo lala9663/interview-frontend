@@ -8,7 +8,7 @@ import DivergingBar from './DivergingBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { adminApi } from '@/api/index.js'
 import { useUi } from '@/stores/ui.js'
-import { SPEAKER_METHOD } from '@/lib/labels.js'
+import { QUESTION_SOURCE, SPEAKER_METHOD, labelOf } from '@/lib/labels.js'
 
 const ui = useUi()
 const d = ref(null)
@@ -58,7 +58,7 @@ const empty = computed(() => d.value && !d.value.endedInterviewCount)
       <p v-if="d" class="text-[0.86rem] text-sub">끝난 면접 <b class="text-ink">{{ d.endedInterviewCount }}</b>건 기준</p>
     </div>
 
-    <div v-if="loading && !d" class="grid gap-4 lg:grid-cols-2"><div v-for="n in 4" :key="n" class="h-44 animate-pulse rounded-2xl bg-sunken" /></div>
+    <div v-if="loading && !d" class="grid gap-4 lg:grid-cols-2"><div v-for="n in 4" :key="n" class="h-44 animate-pulse rounded-lg bg-sunken" /></div>
     <div v-else-if="empty" class="card">
       <EmptyState title="아직 끝난 면접이 없습니다" hint="면접이 끝나고 면접관 평가가 제출되면 AI 결과와 비교한 수치가 여기에 쌓입니다."><template #icon><Gauge :size="22" /></template></EmptyState>
     </div>
@@ -111,6 +111,18 @@ const empty = computed(() => d.value && !d.value.endedInterviewCount)
               <p class="text-[0.78rem] text-faint">물은 질문 중 {{ d.questions.autoMatched }}개를 말로 인식</p>
             </div>
           </div>
+          <table v-if="d.questions.bySource?.length" class="w-full border-t border-line">
+            <thead><tr class="border-b border-line"><th class="th">준비한 질문의 출처</th><th class="th text-right">준비</th><th class="th text-right">물음</th><th class="th w-[30%]">사용률</th><th class="th w-12" /></tr></thead>
+            <tbody>
+              <tr v-for="s in d.questions.bySource" :key="s.source" class="row-line">
+                <td class="td font-medium">{{ labelOf(QUESTION_SOURCE, s.source) }}</td>
+                <td class="td text-right tabular-nums text-sub">{{ s.prepared }}</td>
+                <td class="td text-right tabular-nums">{{ s.asked }}</td>
+                <td class="td"><span class="block h-2.5 overflow-hidden rounded bg-sunken"><span class="block h-full rounded bg-brand" :style="{ width: `${(s.askedRate || 0) * 100}%` }" /></span></td>
+                <td class="td text-right font-semibold tabular-nums">{{ pct(s.askedRate) }}</td>
+              </tr>
+            </tbody>
+          </table>
           <p class="border-t border-line px-4 py-2.5 text-[0.82rem] leading-relaxed text-sub">채택률이 낮으면 꼬리질문이 늦게 나오거나 쓸모가 적다는 뜻입니다. 자동 인식이 낮으면 면접관이 질문을 바꿔 말하는 경우가 많다는 뜻입니다.</p>
         </section>
 

@@ -24,7 +24,7 @@ const steps = computed(() => {
       <component
         :is="s.enabled && s.key !== current ? 'RouterLink' : 'span'"
         :to="s.to"
-        class="flex items-center gap-2 rounded-xl px-2.5 py-1.5 transition"
+        class="flex items-center gap-2 rounded-md px-2.5 py-1.5 transition"
         :class="[s.key === current ? 'bg-brand-soft text-brand-ink' : s.enabled ? 'text-sub hover:bg-sunken' : 'text-faint']"
         :aria-current="s.key === current ? 'step' : undefined"
       >

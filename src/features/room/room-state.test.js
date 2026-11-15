@@ -31,6 +31,15 @@ describe('room-state', () => {
     expect(s.utterances[0].matchedQuestionId).toBe(7)
   })
 
+  it('말로 물은 꼬리질문에는 표시가 남는다', () => {
+    const s = createRoomState()
+    applyEvent(s, { type: 'followup.suggested', basedOnSeq: 2, items: [{ id: 'f-2-1', text: 'A' }, { id: 'f-2-2', text: 'B' }] })
+    applyEvent(s, { type: 'followup.matched', seq: 3, id: 'f-2-2', similarity: 0.8 })
+    expect(s.followUps[0].items.map((x) => !!x.spoken)).toEqual([false, true])
+    expect(s.followUps[0].items[1].spokenAtSeq).toBe(3)
+    applyEvent(s, { type: 'followup.matched', seq: 4, id: 'none', similarity: 0.8 }) // 모르는 id 는 무시
+  })
+
   it('꼬리질문은 최신 묶음이 앞에 오고, 같은 발화의 묶음은 바뀐다', () => {
     const s = createRoomState()
     applyEvent(s, { type: 'followup.suggested', basedOnSeq: 2, items: [{ id: 'a', text: 'A' }] })

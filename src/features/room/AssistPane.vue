@@ -21,7 +21,7 @@ const saveLabel = computed(() => ({ saving: '저장하는 중…', saved: '저�
   <div class="flex min-h-0 flex-col">
     <section class="flex min-h-0 flex-[3] flex-col">
       <header class="flex h-11 shrink-0 items-center justify-between border-b border-line px-3.5">
-        <h2 class="flex items-center gap-2 text-[0.93rem] font-bold"><Sparkles :size="16" class="text-brand" />꼬리질문</h2>
+        <h2 class="flex items-center gap-2 text-[0.93rem] font-bold"><Sparkles :size="16" class="text-faint" />꼬리질문</h2>
         <button v-if="!readonly" class="btn btn-sm btn-ghost" :disabled="busy" @click="emit('request')">지금 만들기</button>
       </header>
       <div class="min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5">
@@ -32,22 +32,23 @@ const saveLabel = computed(() => ({ saving: '저장하는 중…', saved: '저�
           <button
             v-for="(f, i) in latest.items"
             :key="f.id"
-            class="flex w-full animate-rise gap-2.5 rounded-xl border px-3 py-2.5 text-left transition"
-            :class="f.used ? 'border-ok/40 bg-ok-soft/50' : 'border-brand/25 bg-brand-soft/50 hover:border-brand'"
+            class="flex w-full animate-rise gap-2.5 rounded-r-md border-l-2 px-3 py-2.5 text-left transition-colors"
+            :class="f.used ? 'border-ok bg-sunken/60' : 'border-brand hover:bg-sunken'"
             :disabled="readonly || f.used"
             @click="emit('adopt', f)"
           >
             <span class="kbd mt-0.5 shrink-0" :class="f.used ? 'border-ok/40 text-ok' : ''"><Check v-if="f.used" :size="12" :stroke-width="3" /><template v-else>{{ i + 1 }}</template></span>
             <span class="min-w-0">
               <span class="block text-[0.97rem] font-semibold leading-snug">{{ f.text }}</span>
-              <span v-if="f.rationale" class="mt-1 block text-[0.8rem] leading-snug text-sub">{{ f.rationale }}</span>
+              <span v-if="f.spoken" class="mt-1 block text-[0.78rem] font-semibold text-ok">말로 물어 자동으로 채택됨</span>
+              <span v-else-if="f.rationale" class="mt-1 block text-[0.8rem] leading-snug text-sub">{{ f.rationale }}</span>
             </span>
           </button>
           <p v-if="!readonly" class="px-1 text-[0.76rem] text-faint">숫자 키 <span class="kbd">1</span>~<span class="kbd">{{ latest.items.length }}</span>로 질문 목록에 올립니다 (메모 입력 중에는 동작하지 않음)</p>
         </template>
         <div v-if="earlier.length" class="pt-1">
           <p class="label mb-1.5 px-1">이전 제안</p>
-          <button v-for="f in earlier" :key="f.id" class="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-[0.86rem] text-sub hover:bg-sunken" :disabled="readonly" @click="emit('adopt', f)">
+          <button v-for="f in earlier" :key="f.id" class="flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-[0.86rem] text-sub hover:bg-sunken" :disabled="readonly" @click="emit('adopt', f)">
             <CornerDownRight :size="14" class="mt-0.5 shrink-0 text-faint" />{{ f.text }}
           </button>
         </div>
@@ -56,7 +57,7 @@ const saveLabel = computed(() => ({ saving: '저장하는 중…', saved: '저�
 
     <section class="flex min-h-0 flex-[2] flex-col border-t border-line">
       <header class="flex h-10 shrink-0 items-center justify-between px-3.5">
-        <h2 class="flex items-center gap-2 text-[0.93rem] font-bold"><NotebookPen :size="16" class="text-brand" />내 메모</h2>
+        <h2 class="flex items-center gap-2 text-[0.93rem] font-bold"><NotebookPen :size="16" class="text-faint" />내 메모</h2>
         <span class="text-[0.76rem]" :class="saveState === 'error' ? 'text-bad' : 'text-faint'">{{ saveLabel }}</span>
       </header>
       <textarea

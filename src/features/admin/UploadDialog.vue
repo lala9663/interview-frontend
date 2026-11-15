@@ -66,14 +66,14 @@ function reset() {
     <!-- 1. 파일 고르기 -->
     <div v-if="!result" class="space-y-3">
       <label
-        class="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-6 py-9 text-center transition"
+        class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-9 text-center transition"
         :class="dragging ? 'border-brand bg-brand-soft' : 'border-line hover:bg-sunken'"
         @dragover.prevent="dragging = true"
         @dragleave="dragging = false"
         @drop.prevent="dragging = false; pick($event.dataTransfer.files[0])"
       >
         <input type="file" accept=".xlsx,.xls" class="sr-only" @change="pick($event.target.files[0])" />
-        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-sunken text-sub">
+        <span class="flex h-12 w-12 items-center justify-center rounded-lg bg-sunken text-sub">
           <FileSpreadsheet v-if="file" :size="24" /><UploadCloud v-else :size="24" />
         </span>
         <template v-if="file">
@@ -85,7 +85,7 @@ function reset() {
           <p class="text-[0.86rem] text-sub">한 파일에 면접자 여러 명 · 첫 행은 열 이름</p>
         </template>
       </label>
-      <p v-if="error" class="flex items-start gap-2 rounded-xl bg-bad-soft px-3 py-2 text-[0.9rem] font-medium text-bad" role="alert">
+      <p v-if="error" class="flex items-start gap-2 rounded-md bg-bad-soft px-3 py-2 text-[0.9rem] font-medium text-bad" role="alert">
         <AlertTriangle :size="16" class="mt-0.5 shrink-0" />{{ error }}
       </p>
       <ul class="space-y-1 text-[0.86rem] text-sub">
@@ -97,14 +97,14 @@ function reset() {
     <!-- 2. 결과 -->
     <div v-else class="space-y-4">
       <div class="grid grid-cols-3 gap-3">
-        <div class="rounded-xl bg-sunken px-4 py-3"><p class="label">전체 행</p><p class="text-2xl font-bold">{{ result.totalRows }}</p></div>
-        <div class="rounded-xl bg-ok-soft px-4 py-3 text-ok"><p class="text-[0.8rem] font-semibold">등록됨</p><p class="text-2xl font-bold">{{ result.successRows }}</p></div>
-        <div class="rounded-xl px-4 py-3" :class="result.failedRows ? 'bg-bad-soft text-bad' : 'bg-sunken text-faint'"><p class="text-[0.8rem] font-semibold">실패</p><p class="text-2xl font-bold">{{ result.failedRows }}</p></div>
+        <div class="rounded-md bg-sunken px-4 py-3"><p class="label">전체 행</p><p class="text-2xl font-bold">{{ result.totalRows }}</p></div>
+        <div class="rounded-md bg-ok-soft px-4 py-3 text-ok"><p class="text-[0.8rem] font-semibold">등록됨</p><p class="text-2xl font-bold">{{ result.successRows }}</p></div>
+        <div class="rounded-md px-4 py-3" :class="result.failedRows ? 'bg-bad-soft text-bad' : 'bg-sunken text-faint'"><p class="text-[0.8rem] font-semibold">실패</p><p class="text-2xl font-bold">{{ result.failedRows }}</p></div>
       </div>
       <p v-if="!result.failedRows" class="flex items-center gap-2 font-semibold text-ok"><CheckCircle2 :size="18" />모든 행을 등록했습니다.</p>
       <div v-else>
         <p class="mb-2 flex items-center gap-2 font-semibold"><AlertTriangle :size="17" class="text-bad" />등록하지 못한 행 — 엑셀에서 고친 뒤 다시 올리세요</p>
-        <div class="overflow-hidden rounded-xl border border-line">
+        <div class="overflow-hidden rounded-md border border-line">
           <table class="w-full">
             <thead class="bg-sunken"><tr><th class="th w-16">행</th><th class="th w-36">열</th><th class="th w-32">값</th><th class="th">이유</th></tr></thead>
             <tbody>

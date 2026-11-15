@@ -191,15 +191,15 @@ const notice = computed(() => {
 
       <div class="mx-auto flex items-center gap-3">
         <template v-if="live">
-          <span class="badge tone-live"><span class="h-1.5 w-1.5 animate-dot rounded-full bg-current" />진행 중</span>
+          <span class="badge tone-live">진행 중</span>
           <span class="text-[1.25rem] font-bold tabular-nums tracking-tight" :class="overtime ? 'text-bad' : ''" :title="`예정 ${interview?.durationMinutes}분`">{{ clock(elapsed) }}</span>
           <span class="text-[0.8rem] text-faint">/ {{ interview?.durationMinutes }}분</span>
 
-          <div class="ml-3 flex items-center gap-0.5 rounded-xl bg-sunken p-1" role="radiogroup" aria-label="지금 말하는 사람">
+          <div class="ml-3 flex items-center gap-0.5 rounded-md bg-sunken p-1" role="radiogroup" aria-label="지금 말하는 사람">
             <button
               v-for="(r, i) in roles"
               :key="r.key"
-              class="flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[0.86rem] font-semibold transition"
+              class="flex h-7 items-center gap-1.5 rounded px-2.5 text-[0.86rem] font-semibold transition"
               :class="role === r.key ? 'bg-surface text-ink shadow-card' : 'text-sub hover:text-ink'"
               role="radio"
               :aria-checked="role === r.key"
@@ -263,7 +263,7 @@ const notice = computed(() => {
         <!-- 시작 전 덮개 -->
         <div v-if="phase === 'ready'" class="absolute inset-0 flex items-center justify-center bg-surface/85 backdrop-blur-sm">
           <div class="w-full max-w-md space-y-4 text-center">
-            <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft text-brand"><Mic :size="26" /></span>
+            <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-brand-soft text-brand"><Mic :size="26" /></span>
             <div>
               <h2 class="text-xl font-bold tracking-tight">면접을 시작할 준비가 됐나요?</h2>
               <p class="mt-1 text-[0.93rem] leading-relaxed text-sub">시작하면 이 노트북의 마이크로 대화를 받아 적습니다.<br />{{ keepsAudio ? '녹음은 정해진 기간 동안 보관한 뒤 삭제합니다.' : '녹음 파일은 저장하지 않으며, 대화 내용만 글로 남깁니다.' }}</p>

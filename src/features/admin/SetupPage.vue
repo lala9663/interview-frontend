@@ -154,7 +154,7 @@ async function openErrors(batch) {
             </p>
             <p class="text-[0.86rem] leading-relaxed text-sub">지원 직무와 면접관의 담당 직무가 같은 사람을, 배정이 적은 순서로 면접마다 2명씩 배정합니다. 면접이 없는 면접자에게는 면접도 함께 만들고 사전 리포트를 준비합니다.</p>
             <button class="btn w-full" :disabled="matching" @click="autoAssign"><Wand2 :size="16" />{{ matching ? '배정하는 중…' : '자동 매칭 실행' }}</button>
-            <div v-if="matchResult" class="space-y-1 rounded-xl bg-sunken p-3 text-[0.88rem]">
+            <div v-if="matchResult" class="space-y-1 rounded-md bg-sunken p-3 text-[0.88rem]">
               <p>새로 만든 면접 <b>{{ matchResult.createdInterviewCount ?? 0 }}</b>건 · 배정한 면접 <b>{{ matchResult.assignedInterviewCount ?? matchResult.assignedInterviews ?? 0 }}</b>건</p>
               <p v-if="matchResult.unassignedInterviewCount" class="text-warn">담당 직무가 맞는 면접관이 없어 배정하지 못한 면접 {{ matchResult.unassignedInterviewCount }}건</p>
               <ul v-if="matchResult.unassigned?.length" class="text-sub">
@@ -190,7 +190,7 @@ async function openErrors(batch) {
 
     <Modal v-if="errorBatch" :title="`등록하지 못한 행 — ${errorBatch.fileName}`" wide @close="errorBatch = null">
       <p v-if="!errorBatch.errors?.length" class="text-sub">실패 행의 상세 내용이 없습니다.</p>
-      <div v-else class="overflow-hidden rounded-xl border border-line">
+      <div v-else class="overflow-hidden rounded-md border border-line">
         <table class="w-full">
           <thead class="bg-sunken"><tr><th class="th w-16">행</th><th class="th w-36">열</th><th class="th w-32">값</th><th class="th">이유</th></tr></thead>
           <tbody>

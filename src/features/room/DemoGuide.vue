@@ -37,7 +37,7 @@ const restart = () => window.location.reload()
       <li
         v-for="(s, i) in STEPS"
         :key="s.key"
-        class="flex h-7 items-center gap-1.5 rounded-lg border px-2.5 font-semibold transition"
+        class="flex h-7 items-center gap-1.5 rounded border px-2.5 font-semibold transition"
         :class="{
           'border-brand bg-surface text-brand shadow-card': stateOf(s.key) === 'now' && !demo.paused,
           'border-brand/40 bg-surface text-sub': stateOf(s.key) === 'now' && demo.paused,

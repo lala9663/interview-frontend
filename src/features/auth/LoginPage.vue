@@ -37,17 +37,17 @@ async function submit() {
   <div class="flex min-h-screen items-center justify-center bg-bg p-6">
     <div class="w-full max-w-[400px] animate-rise">
       <div class="mb-6 flex items-center gap-3">
-        <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white dark:text-[#0d0f16]">
-          <svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor"><path d="M4 8.5A3.5 3.5 0 0 1 7.5 5h9A3.5 3.5 0 0 1 20 8.5v5a3.5 3.5 0 0 1-3.5 3.5H12l-5 3.5V17A3.5 3.5 0 0 1 4 13.5z" /></svg>
+        <span class="flex h-11 w-11 items-center justify-center rounded-md bg-brand text-[1rem] font-extrabold tracking-tight text-white dark:text-[#0d0f16]">
+          DS
         </span>
         <div>
-          <h1 class="text-xl font-bold tracking-tight">면접 어시스턴트</h1>
+          <h1 class="text-xl font-extrabold tracking-[-0.02em]">DS<span class="text-brand">Interview</span></h1>
           <p class="text-[0.9rem] text-sub">면접 전 준비부터 보고서까지 한곳에서</p>
         </div>
       </div>
 
       <form class="card card-pad space-y-4 p-5" @submit.prevent="submit">
-        <p v-if="route.query.expired" class="rounded-xl bg-warn-soft px-3 py-2 text-[0.9rem] font-medium text-warn">로그인 시간이 지났습니다. 다시 로그인해 주세요.</p>
+        <p v-if="route.query.expired" class="rounded-md bg-warn-soft px-3 py-2 text-[0.9rem] font-medium text-warn">로그인 시간이 지났습니다. 다시 로그인해 주세요.</p>
         <div>
           <p class="label mb-2">개발용 계정</p>
           <div class="grid gap-2">
@@ -55,7 +55,7 @@ async function submit() {
               v-for="p in presets"
               :key="p.employeeNo"
               type="button"
-              class="flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-left transition"
+              class="flex items-center justify-between rounded-md border px-3.5 py-2.5 text-left transition"
               :class="employeeNo === p.employeeNo ? 'border-brand bg-brand-soft' : 'border-line hover:bg-sunken'"
               @click="employeeNo = p.employeeNo"
             >

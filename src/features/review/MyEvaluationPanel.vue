@@ -110,7 +110,7 @@ async function copy() {
             <button
               v-for="n in c.maxScore"
               :key="n"
-              class="h-8 w-8 rounded-lg border text-[0.9rem] font-bold transition"
+              class="h-8 w-8 rounded border text-[0.9rem] font-bold transition"
               :class="row(c.code).score === n ? 'border-brand bg-brand text-white dark:text-[#0d0f16]' : 'border-line text-sub hover:border-brand/50'"
               role="radio"
               :aria-checked="row(c.code).score === n"
@@ -129,7 +129,7 @@ async function copy() {
       <div>
         <p class="label mb-1.5">종합 등급</p>
         <div class="flex gap-1.5">
-          <button v-for="g in grades" :key="g" class="h-9 flex-1 rounded-xl border text-[0.95rem] font-bold transition" :class="form.grade === g ? 'border-brand bg-brand text-white dark:text-[#0d0f16]' : 'border-line text-sub hover:border-brand/50'" @click="form.grade = form.grade === g ? null : g">{{ g }}</button>
+          <button v-for="g in grades" :key="g" class="h-9 flex-1 rounded-md border text-[0.95rem] font-bold transition" :class="form.grade === g ? 'border-brand bg-brand text-white dark:text-[#0d0f16]' : 'border-line text-sub hover:border-brand/50'" @click="form.grade = form.grade === g ? null : g">{{ g }}</button>
         </div>
       </div>
 

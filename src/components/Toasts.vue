@@ -8,7 +8,7 @@ const ui = useUi()
     <div
       v-for="t in ui.toasts"
       :key="t.id"
-      class="pointer-events-auto animate-rise rounded-xl px-4 py-2.5 text-[0.93rem] font-semibold shadow-pop"
+      class="pointer-events-auto animate-rise rounded-md px-4 py-2.5 text-[0.93rem] font-semibold shadow-pop"
       :class="t.tone === 'bad' ? 'bg-bad text-white' : t.tone === 'ok' ? 'bg-ok text-white' : 'bg-ink text-surface'"
       role="status"
     >

@@ -21,7 +21,7 @@
 2. 방이 `CREATED`면 "면접 시작" 덮개. "이 노트북의 마이크를 사용"을 끄면 듣기 전용 단말이 된다.
 3. "면접 시작" → `POST /rooms/{id}/start` → `POST /rooms/{id}/ticket { audio }` → 응답의 `agentWsUrl`로 WebSocket 연결 → 첫 메시지 `{ type: "auth", ticket }`.
 4. 마이크 단말은 100ms마다 PCM16(16kHz 모노) 바이너리 프레임을 보낸다.
-5. Agent 이벤트를 `applyEvent`가 상태에 반영한다: `transcript.partial`(임시 글자) → `transcript.final`(다듬은 문장 + 화자) → `question.matched`(질문에 "물음" 표시) → `followup.suggested`(꼬리질문 후보).
+5. Agent 이벤트를 `applyEvent`가 상태에 반영한다: `transcript.partial`(임시 글자) → `transcript.final`(다듬은 문장 + 화자) → `question.matched`(질문에 "물음" 표시) → `followup.suggested`(꼬리질문 후보) → `followup.matched`(면접관이 꼬리질문 후보를 말로 물음. `use-room.js`가 누른 것과 같이 질문 목록에 올리고 "물음"으로 표시한다. 저장은 마이크를 보내는 단말만 한다).
 6. "면접 종료" → 메모를 마지막으로 저장 → `POST /rooms/{id}/end` → 평가 화면으로 간다.
 
 이미 `LIVE`인 방에 들어오면(새로 고침, 두 번째 면접관) 2번을 건너뛰고 바로 붙는다. `ENDED`면 평가 화면으로 보낸다.

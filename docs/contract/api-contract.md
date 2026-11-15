@@ -104,7 +104,7 @@
 | GET | `/recruitments/{id}/uploads` | 업로드 이력 |
 | GET | `/uploads/{id}` | 업로드 한 건과 오류 목록 |
 | GET | `/uploads/template` | 샘플 엑셀 내려받기 |
-| GET | `/recruitments/{id}/candidates?jobCode=&q=&status=&page=&size=` | 면접자 목록 |
+| GET | `/recruitments/{id}/candidates?jobCode=&q=&status=&type=&page=&size=` | 면접자 목록. `status`와 `type`(`InterviewType`)은 "지금 차수" 면접의 값으로 거른다 |
 | GET | `/candidates/{id}` | 면접자 상세 |
 | GET | `/candidates/{id}/progress` | 전형 진행(면접 차수별 상태). 경력 화면의 진행 표시에 쓴다 |
 
@@ -346,7 +346,8 @@
                "byMethod": { "MANUAL": 35, "QUESTION_MATCH": 210, "RULE": 1900, "LLM": 240, "CHANNEL": 0, "NONE": 15 },
                "manualRate": 0.01,    // 사람이 화자를 지정하거나 고친 비율
                "unknownRate": 0.01 }, // 화자를 정하지 못한 비율
-  "questions": { "prepared": 400, "asked": 260, "askedRate": 0.65, "autoMatched": 90, "autoMatchedRate": 0.35 },
+  "questions": { "prepared": 400, "asked": 260, "askedRate": 0.65, "autoMatched": 90, "autoMatchedRate": 0.35,
+                 "bySource": [ { "source": "JD", "prepared": 120, "asked": 66, "askedRate": 0.55 } ] },  // 출처별 사용률
   "reports": { "liveCount": 42, "refinedCount": 40,
                "liveSecondsMedian": 38, "liveSecondsMax": 95,        // 방 종료 → 초안 보고서
                "refinedSecondsMedian": 240, "refinedSecondsMax": 610 }, // 방 종료 → 보정본 보고서
@@ -354,6 +355,7 @@
 ```
 
 - `questions.autoMatchedRate`의 분모는 `asked`다(물은 질문 가운데 자동으로 인식된 비율).
+- `questions.bySource`는 준비된 질문의 출처(`JD`, `RESUME`, `BANK`)마다 한 항목이고 이 순서로 항상 세 개가 온다. 그 출처의 질문이 없으면 수는 0, `askedRate`는 null. 세 항목의 `prepared`·`asked` 합은 위의 `prepared`·`asked`와 같다.
 - `speaker`는 지금 저장된 전사(보정본이 있으면 보정본) 기준이다.
 
 ```json
@@ -386,6 +388,7 @@
 | 바이너리 | 오디오 프레임. **PCM 16비트 리틀엔디언, 모노, 16kHz.** 프레임 길이는 자유(권장 100ms = 3200바이트). `audio: true` 단말만 |
 | 텍스트 | `{ "type": "role", "role": "INTERVIEWER" \| "CANDIDATE" \| "AUTO" }` 지금부터의 말을 누구 것으로 볼지. `AUTO`면 자동 판정으로 돌아간다 |
 | 텍스트 | `{ "type": "question.asked", "questionId": 7001 }` 면접관이 화면에서 "이 질문 했음"을 누름 |
+| 텍스트 | `{ "type": "question.added", "questionId": 7010 }` 면접 중에 질문을 더했음(직접 추가, 꼬리질문 채택). Agent가 질문 목록을 다시 읽어 이 질문도 말로 인식한다 |
 | 텍스트 | `{ "type": "followup.request" }` 지금까지의 대화로 꼬리질문을 바로 요청 |
 | 텍스트 | `{ "type": "utterance.fix", "seq": 12, "speaker": "CANDIDATE" }` 화자를 사람이 고침 |
 | 텍스트 | `{ "type": "ping" }` |
@@ -400,6 +403,7 @@
 { "type": "transcript.updated", "seq": 12, "speaker": "CANDIDATE", "speakerMethod": "MANUAL" }
 { "type": "question.matched", "seq": 14, "questionId": 7001, "similarity": 0.83 }
 { "type": "followup.suggested", "basedOnSeq": 13, "items": [ { "id": "f-13-1", "text": "...", "rationale": "..." } ] }
+{ "type": "followup.matched", "seq": 15, "id": "f-13-1", "similarity": 0.81 }
 { "type": "status", "stt": "OK", "llm": "OK", "queueDepth": 0, "audioConnected": true }
 { "type": "error", "code": "STT_FAILED", "message": "...", "retryable": true }
 { "type": "pong" }
@@ -412,7 +416,8 @@
 - `status`의 `stt`·`llm` 값: `OK` | `DEGRADED`(직전 호출 실패) | `DOWN`(연속 실패). `queueDepth`는 그 방에서 아직 끝나지 않은 발화 조각 수.
 - `OVERLOADED` 오류는 방의 큐가 밀려 청크를 건너뛸 때 온다(연결은 유지된다). 건너뛴 구간은 사후 STT가 채운다.
 - `followup.suggested`의 `items[].id`는 `f-<기준 seq>-<번호>` 형식이고, 백엔드 follow-ups의 `clientId`와 같다.
-- `question.matched`의 `questionId`는 준비된 질문(2.6의 Question)의 id다. 질문 은행·꼬리질문 후보와의 유사도는 화자 판정에만 쓰이고 이 이벤트로는 오지 않는다.
+- `question.matched`의 `questionId`는 준비된 질문(2.6의 Question)의 id다. 질문 은행과의 유사도는 화자 판정에만 쓰이고 이 이벤트로는 오지 않는다.
+- `followup.matched`는 면접관이 제안된 꼬리질문을 누르지 않고 (비슷하게) 말로 물었을 때 온다. `id`는 `followup.suggested`의 `items[].id`, `seq`는 그 말의 발화 번호다. 한 후보에 한 번만 온다. 한 말이 준비된 질문과 꼬리질문 후보 모두와 기준 이상으로 비슷하면 더 비슷한 쪽의 이벤트 하나만 온다(같으면 `question.matched`). 받은 프론트(마이크를 보내는 단말)는 누른 것과 같이 `POST /follow-ups/{id}/use`로 질문 목록에 올리고 "물었음"으로 표시한다.
 
 ## 4. 백엔드 → Agent (`/internal/v1`, `X-Internal-Key`)
 
@@ -534,7 +539,7 @@
 
 1. 면접관이 방 입장 → `POST /rooms/{id}/ticket` → Agent WebSocket 연결, `auth`.
 2. `POST /rooms/{id}/start`. 마이크 단말이 PCM을 보낸다.
-3. Agent: 말소리 구간으로 자름 → Whisper → LLM 다듬기 → 화자 판정 → `transcript.final`. 면접관 말이면 준비된 질문과 유사도 비교 → `question.matched`. 지원자 답이 끝나면 꼬리질문 생성 → `followup.suggested`.
+3. Agent: 말소리 구간으로 자름 → Whisper → LLM 다듬기 → 화자 판정 → `transcript.final`. 면접관 말이면 준비된 질문·제안한 꼬리질문과 유사도 비교 → `question.matched` 또는 `followup.matched`. 지원자 답이 끝나면 꼬리질문 생성 → `followup.suggested`.
 4. Agent는 확정 전사와 꼬리질문 후보를 백엔드에 저장(5장).
 5. 면접관 메모는 프론트가 `PUT /my-evaluation`으로 자동 저장.
 
