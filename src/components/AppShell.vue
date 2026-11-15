@@ -1,6 +1,6 @@
 <script setup>
 // 로그인 뒤의 공통 틀: 왼쪽 좁은 메뉴 + 위쪽 채용 선택 줄. 면접 방과 로그인 화면은 이 틀을 쓰지 않는다(meta.bare).
-import { computed, onMounted } from 'vue'
+import { computed, defineAsyncComponent, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CalendarClock, Users, GitBranch, Library, LayoutDashboard, Moon, Sun, LogOut, FlaskConical } from 'lucide-vue-next'
 import { useAuth } from '@/stores/auth.js'
@@ -8,6 +8,9 @@ import { useUi } from '@/stores/ui.js'
 import { isMock } from '@/api/http.js'
 import { TRACK } from '@/lib/labels.js'
 import { initials } from '@/lib/format.js'
+
+// 시연용 빌드에서만: 몇 주 차 목업인지와 달라진 것을 보여 주는 버튼
+const DemoChangelog = isMock && import.meta.env.VITE_DEMO_GUIDE === 'on' ? defineAsyncComponent(() => import('./DemoChangelog.vue')) : null
 
 const auth = useAuth()
 const ui = useUi()
@@ -95,6 +98,7 @@ async function logout() {
         </template>
         <slot name="title" />
         <div class="ml-auto flex items-center gap-3">
+          <component :is="DemoChangelog" v-if="DemoChangelog" />
           <span v-if="isMock" class="badge tone-warn" title="백엔드 없이 모의 데이터로 동작 중"><FlaskConical :size="13" />모의 데이터</span>
           <div class="flex items-center gap-2">
             <span class="flex h-8 w-8 items-center justify-center rounded-full bg-sunken text-[0.86rem] font-bold text-sub">{{ initials(auth.user?.name) }}</span>

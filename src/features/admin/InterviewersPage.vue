@@ -72,14 +72,14 @@ const grades = (r) => Object.entries(r.gradeDistribution || {}).sort((a, b) => a
       <EmptyState title="배정된 면접관이 없습니다" hint="면접관을 배정하고 평가가 제출되면 면접관별 점수 경향이 보입니다."><template #icon><Scale :size="22" /></template></EmptyState>
     </div>
     <template v-else-if="d">
-      <div class="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-        <div class="card px-4 py-3"><p class="text-[0.78rem] font-semibold text-faint">제출된 평가</p><p class="text-[1.6rem] font-bold tabular-nums">{{ d.overall.evaluationCount }}</p></div>
-        <div class="card px-4 py-3"><p class="text-[0.78rem] font-semibold text-faint">전체 평균 점수</p><p class="text-[1.6rem] font-bold tabular-nums">{{ num(d.overall.meanScore) }}</p></div>
-        <div class="card px-4 py-3"><p class="text-[0.78rem] font-semibold text-faint">점수의 퍼짐 (표준편차)</p><p class="text-[1.6rem] font-bold tabular-nums">{{ num(d.overall.stdDev) }}</p></div>
-        <div class="card px-4 py-3"><p class="text-[0.78rem] font-semibold text-faint">면접 후 미제출 평가</p><p class="text-[1.6rem] font-bold tabular-nums" :class="totalPending ? 'text-warn' : ''">{{ totalPending }}</p></div>
+      <div class="flex flex-wrap gap-y-3">
+        <div class="min-w-[150px] border-l border-line px-5 first:border-0 first:pl-0"><p class="text-[0.78rem] font-semibold text-faint">제출된 평가</p><p class="text-[1.6rem] font-bold tabular-nums">{{ d.overall.evaluationCount }}</p></div>
+        <div class="min-w-[150px] border-l border-line px-5 first:border-0 first:pl-0"><p class="text-[0.78rem] font-semibold text-faint">전체 평균 점수</p><p class="text-[1.6rem] font-bold tabular-nums">{{ num(d.overall.meanScore) }}</p></div>
+        <div class="min-w-[150px] border-l border-line px-5 first:border-0 first:pl-0"><p class="text-[0.78rem] font-semibold text-faint">점수의 퍼짐 (표준편차)</p><p class="text-[1.6rem] font-bold tabular-nums">{{ num(d.overall.stdDev) }}</p></div>
+        <div class="min-w-[150px] border-l border-line px-5 first:border-0 first:pl-0"><p class="text-[0.78rem] font-semibold text-faint">면접 후 미제출 평가</p><p class="text-[1.6rem] font-bold tabular-nums" :class="totalPending ? 'text-warn' : ''">{{ totalPending }}</p></div>
       </div>
 
-      <p class="flex items-start gap-2 rounded-lg border border-line bg-surface px-4 py-3 text-[0.86rem] leading-relaxed text-sub">
+      <p class="flex items-start gap-2 border-l-2 border-line pl-3.5 text-[0.86rem] leading-relaxed text-sub">
         <Info :size="16" class="mt-0.5 shrink-0 text-brand" />
         <span>
           <b class="text-ink">동료 대비 편차</b>는 같은 면접을 함께 본 다른 면접관들의 평균과 비교한 값이라, 어려운 지원자를 많이 맡은 영향이 빠집니다. 보정을 검토할 때는 이 값을 먼저 보세요.

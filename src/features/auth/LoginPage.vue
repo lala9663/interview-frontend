@@ -1,9 +1,13 @@
 <script setup>
 // 개발용 로그인(사번 선택). 사내에서는 AD SSO로 바뀐다: docs/auth.md
-import { ref } from 'vue'
+import { defineAsyncComponent, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowRight, ShieldCheck } from 'lucide-vue-next'
 import { useAuth } from '@/stores/auth.js'
+import { isMock } from '@/api/http.js'
+
+// 시연용 빌드에서만: 몇 주 차 목업인지와 달라진 것을 보여 주는 버튼
+const DemoChangelog = isMock && import.meta.env.VITE_DEMO_GUIDE === 'on' ? defineAsyncComponent(() => import('@/components/DemoChangelog.vue')) : null
 
 const auth = useAuth()
 const route = useRoute()
@@ -79,6 +83,7 @@ async function submit() {
       <p class="mt-4 flex items-center justify-center gap-1.5 text-[0.84rem] text-faint">
         <ShieldCheck :size="15" /> 사내에서는 AD 계정(SSO)으로 로그인합니다
       </p>
+      <div v-if="DemoChangelog" class="mt-4 flex justify-center"><component :is="DemoChangelog" /></div>
     </div>
   </div>
 </template>

@@ -351,6 +351,18 @@ const routes = [
     db.bank.unshift(q)
     return q
   }],
+  ['POST', '/question-bank/from-question/:id', ([id], { body }) => {
+    const src = [...db.questions.values()].flat().find((x) => x.id === Number(id))
+    if (!src) throw new ApiError(404, 'QUESTION_NOT_FOUND', '질문을 찾을 수 없습니다.')
+    const it = intv(src.interviewId)
+    const jobCode = cand(it.candidateId).jobCode
+    const text = (body?.text || src.text).trim()
+    const same = db.bank.find((q) => q.jobCode === jobCode && q.text === text)
+    if (same) return same
+    const q = { id: nextId(), jobCode, interviewType: it.type, category: body?.category || src.category || null, text }
+    db.bank.unshift(q)
+    return q
+  }],
   ['DELETE', '/question-bank/:id', ([id]) => {
     db.bank = db.bank.filter((q) => q.id !== Number(id))
     return null

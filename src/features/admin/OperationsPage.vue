@@ -98,12 +98,12 @@ function open(r) {
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-2" role="tablist" aria-label="면접 상태">
+    <div class="flex flex-wrap border-b border-line" role="tablist" aria-label="면접 상태">
       <button
         v-for="v in views"
         :key="v.key"
-        class="card min-w-[112px] px-4 py-2.5 text-left transition"
-        :class="view === v.key ? 'border-brand ring-2 ring-brand/20' : 'hover:border-brand/40'"
+        class="relative min-w-[112px] px-4 pb-2.5 pt-1 text-left transition-colors first:pl-0"
+        :class="view === v.key ? 'after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-ink' : 'opacity-60 hover:opacity-100'"
         role="tab"
         :aria-selected="view === v.key"
         @click="view = v.key"
@@ -122,7 +122,7 @@ function open(r) {
     <ul v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       <li v-for="r in rows" :key="r.interview.id">
         <button
-          class="card flex h-full w-full flex-col gap-2 p-3.5 text-left transition hover:shadow-pop"
+          class="card flex h-full w-full flex-col gap-2 p-3.5 text-left transition-colors hover:bg-sunken/60"
           :class="worst(r) === 'bad' ? 'border-bad/50' : worst(r) === 'warn' ? 'border-warn/50' : ''"
           @click="open(r)"
         >
@@ -131,16 +131,14 @@ function open(r) {
               <span class="block truncate font-bold">{{ r.interview.candidate.name }}</span>
               <span class="block truncate text-[0.8rem] text-sub">{{ labelOf(INTERVIEW_TYPE, r.interview.type) }} · {{ r.interview.candidate.jobTitle }}</span>
             </span>
-            <span class="badge shrink-0" :class="`tone-${INTERVIEW_STATUS[r.interview.status]?.tone || 'neutral'}`">
-              <span v-if="r.interview.status === 'IN_PROGRESS'" class="h-1.5 w-1.5 animate-dot rounded-full bg-current" />{{ labelOf(INTERVIEW_STATUS, r.interview.status) }}
-            </span>
+            <span class="badge shrink-0" :class="`tone-${INTERVIEW_STATUS[r.interview.status]?.tone || 'neutral'}`">{{ labelOf(INTERVIEW_STATUS, r.interview.status) }}</span>
           </span>
 
           <span class="flex items-center gap-2 text-[0.84rem] tabular-nums text-sub">
             <span class="font-semibold text-ink">{{ hm(r.interview.scheduledAt) }}</span>
             <template v-if="r.startedAt">
-              <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-sunken" :title="`${r.elapsedMinutes}분 / 예정 ${r.interview.durationMinutes}분`">
-                <span class="block h-full rounded-full" :class="r.overtimeMinutes ? 'bg-warn' : 'bg-brand'" :style="{ width: `${progress(r)}%` }" />
+              <span class="h-1.5 flex-1 overflow-hidden rounded-sm bg-sunken" :title="`${r.elapsedMinutes}분 / 예정 ${r.interview.durationMinutes}분`">
+                <span class="block h-full" :class="r.overtimeMinutes ? 'bg-warn' : 'bg-brand'" :style="{ width: `${progress(r)}%` }" />
               </span>
               <span>{{ r.elapsedMinutes }}/{{ r.interview.durationMinutes }}분</span>
             </template>

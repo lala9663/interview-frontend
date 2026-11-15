@@ -1,5 +1,5 @@
 <script setup>
-// 면접자 상세: 전형 진행(차수), 인적 사항·이력서(블라인드 제외본), 면접 등록.
+// 면접자 상세: 면접 진행(차수), 인적 사항·이력서(블라인드 제외본), 면접 등록.
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, EyeOff, Plus } from 'lucide-vue-next'
@@ -49,7 +49,7 @@ async function addInterview() {
 
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <span class="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-soft text-xl font-bold text-brand-ink">{{ c.name.slice(0, 1) }}</span>
+        <span class="flex h-12 w-12 items-center justify-center rounded-lg bg-sunken text-xl font-bold text-sub">{{ c.name.slice(0, 1) }}</span>
         <div>
           <h1 class="h-page leading-tight">{{ c.name }}</h1>
           <p class="text-[0.9rem] text-sub">
@@ -60,16 +60,16 @@ async function addInterview() {
       <button v-if="auth.isAdmin" class="btn" @click="adding = true"><Plus :size="16" />면접 등록</button>
     </div>
 
-    <section class="card card-pad">
-      <h2 class="h-sec mb-3">전형 진행</h2>
+    <section>
+      <h2 class="h-sec mb-4 border-b border-line pb-2">면접 진행</h2>
       <StageTrack v-if="c.interviews.length" :interviews="c.interviews" @open="open" />
       <p v-else class="text-[0.9rem] text-sub">등록된 면접이 없습니다.</p>
     </section>
 
-    <div class="grid gap-4 lg:grid-cols-[320px_1fr]">
-      <div class="space-y-4">
-        <section class="card card-pad space-y-3">
-          <h2 class="h-sec">학력</h2>
+    <div class="grid gap-x-10 gap-y-6 pt-2 lg:grid-cols-[300px_1fr]">
+      <div class="space-y-6">
+        <section class="space-y-3">
+          <h2 class="h-sec border-b border-line pb-2">학력</h2>
           <div v-for="(e, i) in c.profile.education" :key="i">
             <p class="font-semibold">{{ e.school }}</p>
             <p class="text-[0.9rem] text-sub">{{ e.major }} · {{ e.degree }}<template v-if="e.gpa"> · {{ e.gpa }}</template></p>
@@ -86,29 +86,29 @@ async function addInterview() {
             <p class="label pt-1">{{ PROFILE_EXTRA[k] || k }}</p><p class="text-[0.93rem]">{{ v }}</p>
           </template>
         </section>
-        <section v-if="c.blindedFields?.length" class="rounded-lg border border-dashed border-line px-4 py-3">
+        <section v-if="c.blindedFields?.length" class="border-l-2 border-line pl-3.5">
           <p class="mb-1.5 flex items-center gap-1.5 text-[0.88rem] font-semibold text-sub"><EyeOff :size="15" />블라인드 처리된 항목</p>
           <p class="text-[0.86rem] text-faint">{{ c.blindedFields.map((f) => BLIND_FIELD[f] || f).join(', ') }} — 화면과 AI 요약·질문에서 제외됩니다.</p>
         </section>
       </div>
 
-      <div class="space-y-4">
-        <section v-if="c.profile.careers?.length" class="card card-pad space-y-3">
-          <h2 class="h-sec">경력</h2>
+      <div class="space-y-6">
+        <section v-if="c.profile.careers?.length" class="space-y-3">
+          <h2 class="h-sec border-b border-line pb-2">경력</h2>
           <div v-for="(x, i) in c.profile.careers" :key="i">
             <p class="font-semibold">{{ x.company }} <span class="font-normal text-sub">· {{ x.role }} · {{ x.period }}</span></p>
             <p class="mt-1 leading-relaxed text-sub">{{ x.text }}</p>
           </div>
         </section>
-        <section v-if="c.profile.projects?.length" class="card card-pad space-y-3">
-          <h2 class="h-sec">프로젝트</h2>
+        <section v-if="c.profile.projects?.length" class="space-y-3">
+          <h2 class="h-sec border-b border-line pb-2">프로젝트</h2>
           <div v-for="(x, i) in c.profile.projects" :key="i">
             <p class="font-semibold">{{ x.title }}</p>
             <p class="mt-1 leading-relaxed text-sub">{{ x.text }}</p>
           </div>
         </section>
-        <section v-if="c.profile.essays?.length" class="card card-pad space-y-4">
-          <h2 class="h-sec">자기소개서</h2>
+        <section v-if="c.profile.essays?.length" class="space-y-4">
+          <h2 class="h-sec border-b border-line pb-2">자기소개서</h2>
           <div v-for="(x, i) in c.profile.essays" :key="i">
             <p class="font-semibold">{{ x.title }}</p>
             <p class="mt-1 whitespace-pre-line leading-relaxed text-sub">{{ x.text }}</p>

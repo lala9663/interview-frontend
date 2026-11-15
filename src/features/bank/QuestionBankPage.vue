@@ -58,7 +58,7 @@ async function remove(row) {
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 class="h-page">질문 은행</h1>
-        <p class="text-[0.9rem] text-sub">질문이 많을수록 면접 중 질문 자동 인식이 정확해집니다 · {{ rows.length }}개</p>
+        <p class="text-[0.9rem] text-sub">면접 중에 면접관이 여기 있는 질문을 말하면 자동으로 알아봅니다 · {{ rows.length }}개</p>
       </div>
       <button v-if="auth.isAdmin" class="btn btn-primary" @click="adding = true"><Plus :size="16" />질문 추가</button>
     </div>
@@ -69,15 +69,15 @@ async function remove(row) {
           <Search :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
           <input v-model="q" class="input pl-9" placeholder="질문 검색" aria-label="질문 검색" />
         </div>
-        <div class="flex gap-1">
-          <button class="btn btn-sm" :class="jobCode === '' ? 'btn-primary' : 'btn-ghost'" @click="jobCode = ''">전체</button>
-          <button v-for="j in jobCodes" :key="j" class="btn btn-sm" :class="jobCode === j ? 'btn-primary' : 'btn-ghost'" @click="jobCode = j">{{ j }}</button>
+        <div class="ml-1 flex items-center border-l border-line pl-2" role="tablist" aria-label="직무">
+          <button class="tab h-9" :class="{ 'tab-on': jobCode === '' }" role="tab" :aria-selected="jobCode === ''" @click="jobCode = ''">전체</button>
+          <button v-for="j in jobCodes" :key="j" class="tab h-9" :class="{ 'tab-on': jobCode === j }" role="tab" :aria-selected="jobCode === j" @click="jobCode = j">{{ j }}</button>
         </div>
       </div>
       <EmptyState v-if="!rows.length" title="질문이 없습니다"><template #icon><Library :size="22" /></template></EmptyState>
       <ul v-else class="divide-y divide-line">
-        <li v-for="r in rows" :key="r.id" class="group flex items-center gap-3 px-4 py-2.5">
-          <span class="badge tone-brand w-12 justify-center">{{ r.jobCode }}</span>
+        <li v-for="r in rows" :key="r.id" class="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-sunken/70">
+          <span class="w-10 shrink-0 text-[0.84rem] font-semibold tabular-nums text-sub">{{ r.jobCode }}</span>
           <span class="w-24 shrink-0 text-[0.84rem] text-sub">{{ labelOf(INTERVIEW_TYPE, r.interviewType, '공통') }}</span>
           <span class="w-24 shrink-0 truncate text-[0.84rem] text-faint">{{ r.category }}</span>
           <span class="min-w-0 flex-1 font-medium">{{ r.text }}</span>

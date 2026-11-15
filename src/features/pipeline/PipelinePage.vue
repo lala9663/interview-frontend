@@ -123,9 +123,9 @@ const tone = (s) => INTERVIEW_STATUS[s]?.tone || 'neutral'
     <section v-if="types.length" class="card overflow-hidden">
       <table class="w-full">
         <thead>
-          <tr class="border-b border-line bg-sunken/60">
+          <tr class="border-b border-line">
             <th class="th w-40">면접 유형</th>
-            <th v-for="s in STATUSES" :key="s" class="th text-center">{{ labelOf(INTERVIEW_STATUS, s) }}</th>
+            <th v-for="s in STATUSES" :key="s" class="th text-center"><span class="badge border-0 bg-transparent px-0 text-[0.78rem] font-semibold text-faint" :class="`tone-${tone(s)}`">{{ labelOf(INTERVIEW_STATUS, s) }}</span></th>
             <th class="th w-48">진행률</th>
           </tr>
         </thead>
@@ -134,10 +134,10 @@ const tone = (s) => INTERVIEW_STATUS[s]?.tone || 'neutral'
             <td class="td font-semibold">{{ labelOf(INTERVIEW_TYPE, t) }} <span class="ml-1 text-[0.8rem] font-normal text-faint">{{ totalOf(t) }}</span></td>
             <td v-for="s in STATUSES" :key="s" class="px-1.5 py-1.5 text-center">
               <button
-                class="h-9 w-full rounded text-[1.02rem] font-bold tabular-nums transition"
+                class="h-9 w-full rounded text-[1.02rem] font-bold tabular-nums transition-colors"
                 :class="[
-                  matrix[t][s] ? `tone-${tone(s)} hover:brightness-95` : 'text-faint',
-                  cell?.type === t && cell?.status === s ? 'ring-2 ring-brand ring-offset-1 ring-offset-surface' : '',
+                  matrix[t][s] ? 'text-ink hover:bg-sunken' : 'font-normal text-faint',
+                  cell?.type === t && cell?.status === s ? 'bg-sunken ring-1 ring-ink' : '',
                 ]"
                 :disabled="!matrix[t][s]"
                 :aria-pressed="cell?.type === t && cell?.status === s"
@@ -149,7 +149,7 @@ const tone = (s) => INTERVIEW_STATUS[s]?.tone || 'neutral'
             </td>
             <td class="td">
               <div class="flex items-center gap-2">
-                <div class="h-2 flex-1 overflow-hidden rounded-full bg-sunken"><div class="h-full rounded-full bg-ok transition-all" :style="{ width: `${totalOf(t) ? (matrix[t].DONE / totalOf(t)) * 100 : 0}%` }" /></div>
+                <div class="h-1.5 flex-1 overflow-hidden rounded-sm bg-sunken"><div class="h-full bg-ok transition-all" :style="{ width: `${totalOf(t) ? (matrix[t].DONE / totalOf(t)) * 100 : 0}%` }" /></div>
                 <span class="w-10 text-right text-[0.84rem] font-semibold tabular-nums text-sub">{{ totalOf(t) ? Math.round((matrix[t].DONE / totalOf(t)) * 100) : 0 }}%</span>
               </div>
             </td>
@@ -169,9 +169,9 @@ const tone = (s) => INTERVIEW_STATUS[s]?.tone || 'neutral'
           <option value="">직무 전체</option>
           <option v-for="j in jobs" :key="j" :value="j">{{ j }}</option>
         </select>
-        <button class="btn btn-sm" :class="todayOnly ? 'btn-primary' : ''" :aria-pressed="todayOnly" @click="todayOnly = !todayOnly">오늘 면접</button>
-        <button class="btn btn-sm" :class="mineOnly ? 'btn-primary' : ''" :aria-pressed="mineOnly" @click="mineOnly = !mineOnly">내 면접</button>
-        <button v-if="cell" class="badge tone-brand h-8 gap-1.5 px-3" @click="cell = null">
+        <button class="btn btn-sm" :class="todayOnly ? 'border-ink bg-sunken' : 'text-sub'" :aria-pressed="todayOnly" @click="todayOnly = !todayOnly">오늘 면접</button>
+        <button class="btn btn-sm" :class="mineOnly ? 'border-ink bg-sunken' : 'text-sub'" :aria-pressed="mineOnly" @click="mineOnly = !mineOnly">내 면접</button>
+        <button v-if="cell" class="badge tone-brand h-8 gap-1.5 px-2.5 text-ink" @click="cell = null">
           {{ labelOf(INTERVIEW_TYPE, cell.type) }} · {{ labelOf(INTERVIEW_STATUS, cell.status) }}<X :size="14" />
         </button>
         <span class="ml-auto text-[0.86rem] text-faint">{{ filtered.length }}명</span>
@@ -199,9 +199,7 @@ const tone = (s) => INTERVIEW_STATUS[s]?.tone || 'neutral'
             <td class="px-3 py-1.5 text-[0.88rem] text-sub">{{ p.candidate.jobTitle }}</td>
             <td v-for="t in types" :key="t" class="px-3 py-1.5">
               <button v-if="p.byType[t]" class="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-sunken" :title="`${labelOf(INTERVIEW_TYPE, t)} 열기`" @click="open(p.byType[t])">
-                <span class="badge h-[22px] px-2 text-[0.76rem]" :class="`tone-${tone(p.byType[t].status)}`">
-                  <span v-if="p.byType[t].status === 'IN_PROGRESS'" class="h-1.5 w-1.5 animate-dot rounded-full bg-current" />{{ labelOf(INTERVIEW_STATUS, p.byType[t].status) }}
-                </span>
+                <span class="badge h-[22px] px-2 text-[0.76rem]" :class="`tone-${tone(p.byType[t].status)}`">{{ labelOf(INTERVIEW_STATUS, p.byType[t].status) }}</span>
                 <span class="text-[0.82rem] tabular-nums" :class="isToday(p.byType[t].scheduledAt) ? 'font-semibold text-ink' : 'text-faint'">{{ when(p.byType[t]) }}</span>
               </button>
               <span v-else class="px-1.5 text-faint">–</span>

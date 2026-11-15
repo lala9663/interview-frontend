@@ -11,6 +11,11 @@
 - 모서리는 작게: 카드 `rounded-lg`(8px), 버튼·입력 `rounded-md`(6px), 배지 `rounded`(4px). `rounded-xl` 이상은 쓰지 않는다. 동그라미(`rounded-full`)는 점과 사람 표시에만.
 - 그림자는 떠 있는 것(모달, 토스트, 떠 있는 버튼)에만 `shadow-pop`.
 - 숫자(시각, 점수, 건수)는 `tabular-nums`로 자릿수를 맞춘다.
+- 되풀이해 쓰는 모양:
+  - 구역 제목: `h-sec` 아래에 가는 선(`border-b border-line pb-2`). 글만 있는 구역은 카드로 감싸지 않는다. 표와 필터가 붙은 목록만 `.card`로 감싼다.
+  - 숫자 요약: 칸마다 카드로 만들지 않고 세로선(`border-l border-line`)으로 나눈 한 줄.
+  - 고르는 것(필터, 하위 메뉴): 채운 버튼이 아니라 밑줄 탭(`.tab` / `.tab-on`). 켜고 끄는 필터 버튼은 켜졌을 때 `border-ink bg-sunken`.
+  - 강조·경고·AI가 만든 글: 색 면이 아니라 왼쪽 세로선(`border-l-2 border-ok|warn|bad|brand pl-3.5`).
 
 ## 기준 화면
 

@@ -68,18 +68,18 @@ async function hide(q) {
   <div v-if="interview" class="space-y-4">
     <InterviewHeader :interview="interview" current="prep" />
 
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div class="grid gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <!-- 사전 리포트 -->
-      <section class="card flex flex-col">
-        <header class="flex items-center justify-between border-b border-line px-4 py-3">
-          <h2 class="h-sec flex items-center gap-2"><Sparkles :size="17" class="text-brand" />사전 리포트</h2>
+      <section class="flex flex-col">
+        <header class="flex h-11 items-center justify-between border-b border-line">
+          <h2 class="h-sec flex items-center gap-2"><Sparkles :size="16" class="text-faint" />사전 리포트</h2>
           <div class="flex items-center gap-2">
             <span v-if="briefing?.generatedAt" class="text-[0.8rem] text-faint">{{ ago(briefing.generatedAt) }} 생성</span>
             <button class="btn btn-sm btn-ghost" :disabled="generating" @click="generate"><RefreshCw :size="14" :class="{ 'animate-spin': generating }" />다시 만들기</button>
           </div>
         </header>
 
-        <div v-if="generating" class="space-y-3 p-4">
+        <div v-if="generating" class="space-y-3 py-4">
           <p class="flex items-center gap-2 font-semibold text-brand"><RefreshCw :size="16" class="animate-spin" />이력서를 읽고 요약하는 중입니다…</p>
           <div v-for="n in 5" :key="n" class="h-4 animate-pulse rounded bg-sunken" :style="{ width: `${95 - n * 9}%` }" />
         </div>
@@ -87,7 +87,7 @@ async function hide(q) {
           <template #icon><Sparkles :size="22" /></template>
           <button class="btn btn-primary" @click="generate"><Sparkles :size="16" />사전 리포트 만들기</button>
         </EmptyState>
-        <div v-else class="space-y-4 p-4">
+        <div v-else class="space-y-5 py-4">
           <p class="text-[1.15rem] font-bold leading-snug tracking-tight">{{ briefing.summary.headline }}</p>
           <div>
             <p class="label mb-1.5">핵심</p>
@@ -96,11 +96,11 @@ async function hide(q) {
             </ul>
           </div>
           <div class="grid gap-3 sm:grid-cols-2">
-            <div class="rounded-md bg-ok-soft/60 p-3">
+            <div class="border-l-2 border-ok pl-3.5">
               <p class="mb-1.5 flex items-center gap-1.5 text-[0.84rem] font-bold text-ok"><CheckCircle2 :size="15" />강점</p>
               <ul class="space-y-1 text-[0.93rem] leading-relaxed"><li v-for="(x, i) in briefing.summary.strengths" :key="i">{{ x }}</li></ul>
             </div>
-            <div class="rounded-md bg-warn-soft/60 p-3">
+            <div class="border-l-2 border-warn pl-3.5">
               <p class="mb-1.5 flex items-center gap-1.5 text-[0.84rem] font-bold text-warn"><HelpCircle :size="15" />확인할 점</p>
               <ul class="space-y-1 text-[0.93rem] leading-relaxed"><li v-for="(x, i) in briefing.summary.checkPoints" :key="i">{{ x }}</li></ul>
             </div>
@@ -118,16 +118,16 @@ async function hide(q) {
       </section>
 
       <!-- 질문 -->
-      <section class="card flex flex-col">
-        <header class="flex items-center justify-between border-b border-line px-4 py-3">
+      <section class="flex flex-col">
+        <header class="flex h-11 items-center justify-between border-b border-line">
           <h2 class="h-sec">준비된 질문 <span class="ml-1 text-[0.9rem] font-semibold text-faint">{{ visible.length }}</span></h2>
-          <div class="flex gap-1">
-            <button class="btn btn-sm" :class="sourceFilter === '' ? 'btn-primary' : 'btn-ghost'" @click="sourceFilter = ''">전체</button>
-            <button v-for="s in sources" :key="s" class="btn btn-sm" :class="sourceFilter === s ? 'btn-primary' : 'btn-ghost'" @click="sourceFilter = s">{{ labelOf(QUESTION_SOURCE, s) }}</button>
+          <div class="flex self-end">
+            <button class="tab h-9 px-2.5 text-[0.86rem]" :class="{ 'tab-on': sourceFilter === '' }" @click="sourceFilter = ''">전체</button>
+            <button v-for="s in sources" :key="s" class="tab h-9 px-2.5 text-[0.86rem]" :class="{ 'tab-on': sourceFilter === s }" @click="sourceFilter = s">{{ labelOf(QUESTION_SOURCE, s) }}</button>
           </div>
         </header>
         <ol class="flex-1 divide-y divide-line">
-          <li v-for="(q, i) in visible" :key="q.id" class="group flex gap-3 px-4 py-3">
+          <li v-for="(q, i) in visible" :key="q.id" class="group flex gap-3 px-1 py-3">
             <span class="mt-0.5 w-5 shrink-0 text-right text-[0.9rem] font-bold text-faint">{{ i + 1 }}</span>
             <div class="min-w-0 flex-1">
               <p class="font-semibold leading-snug">{{ q.text }}</p>
@@ -140,7 +140,7 @@ async function hide(q) {
           </li>
           <li v-if="!visible.length" class="px-4 py-8 text-center text-[0.9rem] text-sub">사전 리포트를 만들면 질문도 함께 준비됩니다.</li>
         </ol>
-        <form class="flex gap-2 border-t border-line p-3" @submit.prevent="addQuestion">
+        <form class="flex gap-2 border-t border-line pt-3" @submit.prevent="addQuestion">
           <input v-model="newQuestion" class="input" placeholder="직접 물어볼 질문 추가" aria-label="질문 추가" />
           <button class="btn" :disabled="!newQuestion.trim()"><Plus :size="16" />추가</button>
         </form>

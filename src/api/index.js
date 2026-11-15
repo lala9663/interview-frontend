@@ -85,5 +85,6 @@ export const miscApi = {
   job: (jobId) => http.get(`/ai-jobs/${jobId}`),
   questionBank: (params) => http.get('/question-bank', params),
   addBankQuestion: (body) => http.post('/question-bank', body),
+  saveQuestionToBank: (questionId, body) => http.post(`/question-bank/from-question/${questionId}`, body),
   removeBankQuestion: (id) => http.del(`/question-bank/${id}`),
 }

@@ -205,9 +205,12 @@ export function questionsFor(c, it) {
     ...bank.map((b) => ['BANK', b.category, b.text, '질문 은행']),
     ['RESUME', '성장', '그 경험을 다시 한다면 무엇을 다르게 하겠습니까?', '회고와 학습'],
   ]
+  // 이미 끝난 면접은 물은 질문이 있어야 "면접 후 > 물은 질문"이 보인다: 앞의 다섯 개와 채택한 꼬리질문 하나.
+  const ended = it.roomStatus === 'ENDED'
+  if (ended) rows.push(['FOLLOW_UP', '꼬리질문', '유실률을 어떤 방법으로 측정했나요?', '이력서의 4% → 0.2% 수치의 근거'])
   return rows.map(([source, category, text, intent], i) => ({
     id: ++qid, interviewId: it.id, source, category, text, intent, orderNo: i + 1,
-    asked: false, askedAtSeq: null, hidden: false, parentQuestionId: null,
+    asked: ended && (i < 5 || source === 'FOLLOW_UP'), askedAtSeq: null, hidden: false, parentQuestionId: null,
   }))
 }
 

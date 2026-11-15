@@ -19,7 +19,7 @@ npm ci
 | `npm run dev` | mock | 없음 | http://localhost:5173 |
 | `npm run dev:api` | api | 백엔드 8080, Agent 8000 | http://localhost:5173 |
 | `npm run build` → `dist/` | api | 웹 서버(같은 도메인에서 `/api/v1`을 백엔드로 넘김) | 배포 주소 |
-| `npm run build:demo` → `dist-demo/interview-mockup.html` | mock | 없음(서버도 필요 없다) | 파일을 더블클릭 |
+| `npm run build:demo` → `dist-demo/interview-mockup-<주차>.html` | mock | 없음(서버도 필요 없다) | 파일을 더블클릭 |
 
 ### 시연용 HTML (`build:demo`)
 
@@ -32,6 +32,15 @@ npm ci
 - 대본은 `src/mocks/data.js`의 `liveScript`다(문장 18개, 1배속으로 약 2분 30초). 대본의 `q`는 준비된 질문의 순서와 맞춰야 자동 체크가 된다.
 - 주소는 `#` 뒤로 화면을 구분한다(`VITE_ROUTER=hash`). 서버가 없어서다.
 - 설정은 `vite.config.js`의 `demo` 부분과 `.env.demo`에 있다.
+
+### 주차별 목업
+
+매주 회의에서 지난주 대비 달라진 것을 보여 주려고 목업을 주차마다 따로 남긴다.
+
+- 파일 이름에 주차가 붙는다: `dist-demo/interview-mockup-2026-w47.html`. 주차 이름은 `main`에 붙이는 태그와 같다. 지난 주의 파일은 빌드해도 지워지지 않는다. 같은 내용이 `interview-mockup.html`(가장 최근 것)로도 나온다.
+- 주차와 변경 요약은 `src/mocks/changelog.js`에 있다. 목업의 로그인 화면과 위쪽 줄에 "N주 차 · 달라진 것" 버튼이 나오고(`components/DemoChangelog.vue`), 누르면 주차별 변경 요약이 뜬다. 시연용 빌드에만 나온다.
+- 매주 하는 일: `main`으로 올린 뒤 `changelog.js` 맨 위에 그 주 항목을 하나 더하고 `npm run build:demo`. 항목은 실제로 `main`에 들어간 것만 적는다. 지난 주 항목은 고치지 않는다.
+- `dist-demo`는 git에 올리지 않는다(`.gitignore`). 지난 주 파일은 이 PC에만 남으므로, 보관이 필요하면 따로 옮겨 둔다. 지난 주 것을 다시 만들려면 그 주의 태그를 체크아웃해 빌드한다.
 
 세 레포를 함께 띄우는 순서: 백엔드(`./gradlew bootRun`) → Agent(`uvicorn app.main:app --port 8000`) → 프론트(`npm run dev:api`). 자세한 것은 각 레포의 `docs/setup.md`.
 

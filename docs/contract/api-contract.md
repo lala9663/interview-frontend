@@ -253,6 +253,7 @@
 | GET | `/dashboard/summary?recruitmentId=` | 오늘 면접, 진행 중인 방, 평가 대기, 보고서 대기 수와 목록 |
 | GET | `/question-bank?jobCode=&category=&q=` | 질문 은행 |
 | POST | `/question-bank` | `{ "jobCode", "interviewType", "category", "text", "sampleAnswer"? }` (ADMIN) |
+| POST | `/question-bank/from-question/{questionId}` | 면접에서 쓴 질문(2.6의 Question)을 은행에 담는다. 본문 `{ "text"?, "category"? }`(비우면 그 질문의 글·분류). 직무는 면접자의 지원 직무, 유형은 그 면접의 유형. 같은 직무에 같은 글이 있으면 새로 만들지 않고 그 항목을 돌려준다. 그 면접에 배정된 면접관과 ADMIN |
 | DELETE | `/question-bank/{id}` | (ADMIN) |
 | GET | `/health` | `{ "status": "UP", "agent": "UP" }` (인증 없음) |
 

@@ -90,8 +90,8 @@ async function openErrors(batch) {
       <button class="btn btn-primary" @click="showUpload = true"><Upload :size="16" />면접자 엑셀 업로드</button>
     </div>
 
-    <div class="grid grid-cols-3 gap-2.5 lg:grid-cols-6">
-      <div v-for="t in tiles" :key="t.label" class="card px-4 py-3">
+    <div class="flex flex-wrap gap-y-3">
+      <div v-for="t in tiles" :key="t.label" class="min-w-[120px] border-l border-line px-5 first:border-0 first:pl-0">
         <p class="text-[0.78rem] font-semibold text-faint">{{ t.label }}</p>
         <p class="text-[1.6rem] font-bold leading-tight tabular-nums" :class="t.tone">{{ t.value ?? '–' }}</p>
       </div>

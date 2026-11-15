@@ -1,12 +1,13 @@
 <script setup>
-// 면접 후: 왼쪽에 AI가 만든 것(보고서 · 참고 평가 · 대화 기록), 오른쪽에 내 평가.
+// 면접 후: 왼쪽에 AI가 만든 것(보고서 · 참고 평가 · 대화 기록)과 물은 질문, 오른쪽에 내 평가.
 // 보고서는 실시간 전사 기반 초안이 먼저 오고, 사후 STT가 끝나면 보정본으로 바뀐다.
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { Bot, FileText, MessagesSquare, RefreshCw, Sparkles } from 'lucide-vue-next'
+import { Bot, FileText, ListChecks, MessagesSquare, RefreshCw, Sparkles } from 'lucide-vue-next'
 import InterviewHeader from '@/components/InterviewHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ReportView from './ReportView.vue'
 import MyEvaluationPanel from './MyEvaluationPanel.vue'
+import AskedQuestionsPanel from './AskedQuestionsPanel.vue'
 import TranscriptPane from '@/features/room/TranscriptPane.vue'
 import { interviewApi, roomApi } from '@/api/index.js'
 import { useUi } from '@/stores/ui.js'
@@ -28,6 +29,7 @@ const tabs = [
   { key: 'report', label: '보고서', icon: FileText },
   { key: 'ai', label: 'AI 참고 평가', icon: Bot },
   { key: 'talk', label: '대화 기록', icon: MessagesSquare },
+  { key: 'asked', label: '물은 질문', icon: ListChecks },
 ]
 
 const reportReady = computed(() => report.value?.status === 'SUCCEEDED' && report.value.content)
@@ -108,7 +110,7 @@ const evidence = (seqs) => utterances.value.filter((u) => seqs?.includes(u.seq))
             <button v-if="interview.roomStatus === 'ENDED'" class="btn btn-primary" @click="regenerate"><Sparkles :size="16" />보고서 만들기</button>
           </EmptyState>
           <template v-else>
-            <p v-if="waitingRefined" class="mb-4 flex items-center gap-2 rounded-md bg-warn-soft px-3.5 py-2.5 text-[0.9rem] font-medium text-warn">
+            <p v-if="waitingRefined" class="mb-4 flex items-center gap-2 border-l-2 border-warn py-0.5 pl-3.5 text-[0.9rem] font-medium text-warn">
               <RefreshCw :size="15" class="animate-spin" />실시간 전사로 만든 초안입니다. 녹취를 다시 정리한 보정본이 준비되면 자동으로 바뀝니다.
             </p>
             <ReportView :content="report.content" @jump="jump" />
@@ -142,6 +144,11 @@ const evidence = (seqs) => utterances.value.filter((u) => seqs?.includes(u.seq))
         <!-- 대화 기록 -->
         <div v-show="tab === 'talk'" class="flex h-[62vh] flex-col">
           <TranscriptPane :utterances="utterances" :questions="questions" readonly />
+        </div>
+
+        <!-- 물은 질문: 잘 쓰인 질문을 은행에 담는다 -->
+        <div v-show="tab === 'asked'" class="p-5">
+          <AskedQuestionsPanel :questions="questions" />
         </div>
       </section>
 

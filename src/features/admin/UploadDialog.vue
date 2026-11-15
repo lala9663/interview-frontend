@@ -67,7 +67,7 @@ function reset() {
     <div v-if="!result" class="space-y-3">
       <label
         class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-9 text-center transition"
-        :class="dragging ? 'border-brand bg-brand-soft' : 'border-line hover:bg-sunken'"
+        :class="dragging ? 'border-brand bg-sunken' : 'border-line hover:bg-sunken'"
         @dragover.prevent="dragging = true"
         @dragleave="dragging = false"
         @drop.prevent="dragging = false; pick($event.dataTransfer.files[0])"
@@ -85,7 +85,7 @@ function reset() {
           <p class="text-[0.86rem] text-sub">한 파일에 면접자 여러 명 · 첫 행은 열 이름</p>
         </template>
       </label>
-      <p v-if="error" class="flex items-start gap-2 rounded-md bg-bad-soft px-3 py-2 text-[0.9rem] font-medium text-bad" role="alert">
+      <p v-if="error" class="flex items-start gap-2 border-l-2 border-bad pl-3 text-[0.9rem] font-medium text-bad" role="alert">
         <AlertTriangle :size="16" class="mt-0.5 shrink-0" />{{ error }}
       </p>
       <ul class="space-y-1 text-[0.86rem] text-sub">
@@ -96,10 +96,10 @@ function reset() {
 
     <!-- 2. 결과 -->
     <div v-else class="space-y-4">
-      <div class="grid grid-cols-3 gap-3">
-        <div class="rounded-md bg-sunken px-4 py-3"><p class="label">전체 행</p><p class="text-2xl font-bold">{{ result.totalRows }}</p></div>
-        <div class="rounded-md bg-ok-soft px-4 py-3 text-ok"><p class="text-[0.8rem] font-semibold">등록됨</p><p class="text-2xl font-bold">{{ result.successRows }}</p></div>
-        <div class="rounded-md px-4 py-3" :class="result.failedRows ? 'bg-bad-soft text-bad' : 'bg-sunken text-faint'"><p class="text-[0.8rem] font-semibold">실패</p><p class="text-2xl font-bold">{{ result.failedRows }}</p></div>
+      <div class="flex">
+        <div class="min-w-[110px] pr-5"><p class="label">전체 행</p><p class="text-2xl font-bold tabular-nums">{{ result.totalRows }}</p></div>
+        <div class="min-w-[110px] border-l border-line px-5"><p class="label">등록됨</p><p class="text-2xl font-bold tabular-nums text-ok">{{ result.successRows }}</p></div>
+        <div class="min-w-[110px] border-l border-line px-5"><p class="label">실패</p><p class="text-2xl font-bold tabular-nums" :class="result.failedRows ? 'text-bad' : 'text-faint'">{{ result.failedRows }}</p></div>
       </div>
       <p v-if="!result.failedRows" class="flex items-center gap-2 font-semibold text-ok"><CheckCircle2 :size="18" />모든 행을 등록했습니다.</p>
       <div v-else>

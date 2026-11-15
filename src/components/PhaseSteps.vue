@@ -25,11 +25,11 @@ const steps = computed(() => {
         :is="s.enabled && s.key !== current ? 'RouterLink' : 'span'"
         :to="s.to"
         class="flex items-center gap-2 rounded-md px-2.5 py-1.5 transition"
-        :class="[s.key === current ? 'bg-brand-soft text-brand-ink' : s.enabled ? 'text-sub hover:bg-sunken' : 'text-faint']"
+        :class="[s.key === current ? 'text-ink' : s.enabled ? 'text-sub hover:bg-sunken' : 'text-faint']"
         :aria-current="s.key === current ? 'step' : undefined"
       >
         <span
-          class="flex h-6 w-6 items-center justify-center rounded-full text-[0.8rem] font-bold"
+          class="flex h-6 w-6 items-center justify-center rounded-md text-[0.8rem] font-bold"
           :class="s.done ? 'bg-ok text-white' : s.key === current ? 'bg-brand text-white dark:text-[#0d0f16]' : 'bg-sunken text-faint'"
         >
           <Check v-if="s.done" :size="14" :stroke-width="3" />
