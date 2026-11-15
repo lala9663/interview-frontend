@@ -40,7 +40,7 @@ npm ci
 - 파일 이름에 주차가 붙는다: `dist-demo/interview-mockup-2026-w47.html`. 주차 이름은 `main`에 붙이는 태그와 같다. 지난 주의 파일은 빌드해도 지워지지 않는다. 같은 내용이 `interview-mockup.html`(가장 최근 것)로도 나온다.
 - 주차와 변경 요약은 `src/mocks/changelog.js`에 있다. 목업의 로그인 화면과 위쪽 줄에 "N주 차 · 달라진 것" 버튼이 나오고(`components/DemoChangelog.vue`), 누르면 주차별 변경 요약이 뜬다. 시연용 빌드에만 나온다.
 - 매주 하는 일: `main`으로 올린 뒤 `changelog.js` 맨 위에 그 주 항목을 하나 더하고 `npm run build:demo`. 항목은 실제로 `main`에 들어간 것만 적는다. 지난 주 항목은 고치지 않는다.
-- `dist-demo`는 git에 올리지 않는다(`.gitignore`). 지난 주 파일은 이 PC에만 남으므로, 보관이 필요하면 따로 옮겨 둔다. 지난 주 것을 다시 만들려면 그 주의 태그를 체크아웃해 빌드한다.
+- 주차 이름이 붙은 파일(`dist-demo/interview-mockup-<주차>.html`)은 git에 올린다. 빌드 없이 받아서 바로 열 수 있게 하고, 지난 주에 보여 준 것을 남기기 위해서다. 이름이 고정된 `interview-mockup.html`은 같은 내용의 사본이라 올리지 않는다(`.gitignore`). 한 주에 약 4MB씩 는다.
 
 세 레포를 함께 띄우는 순서: 백엔드(`./gradlew bootRun`) → Agent(`uvicorn app.main:app --port 8000`) → 프론트(`npm run dev:api`). 자세한 것은 각 레포의 `docs/setup.md`.
 

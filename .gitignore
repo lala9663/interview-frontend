@@ -1,6 +1,8 @@
 node_modules
 dist
-dist-demo
+# 시연용 빌드 결과: 주차 이름이 붙은 목업만 올린다(주마다 한 파일). 이름이 고정된 사본은 올리지 않는다
+dist-demo/*
+!dist-demo/interview-mockup-20*.html
 *.local
 .DS_Store
 coverage
