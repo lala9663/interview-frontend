@@ -1,4 +1,4 @@
-// 백엔드 REST 호출의 한 곳. 화면은 이 파일을 직접 쓰지 않고 src/api/<기능>.js의 함수를 부른다.
+// 백엔드 REST 호출의 한 곳. 화면은 이 파일로 직접 호출하지 않고 src/api/index.js의 함수를 부른다.
 // VITE_API_MODE=mock이면 네트워크 대신 src/mocks/server.js가 답한다.
 
 const MODE = import.meta.env.VITE_API_MODE || 'mock'

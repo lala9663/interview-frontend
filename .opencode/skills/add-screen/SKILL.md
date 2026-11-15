@@ -19,7 +19,7 @@ description: 프론트에 새 화면(페이지)이나 큰 화면 구역을 더�
    - 불러오는 중: `animate-pulse rounded-lg bg-sunken` 막대. 비었을 때: `EmptyState`(다음에 할 일을 적는다)
    - 오류: `try/catch` → `ui.fail(e)` (`useUi()`)
 4. 열거형 값은 `StatusBadge` + `lib/labels.js`로 그린다. 새 열거형이면 `labels.js`에 표를 더한다.
-5. `src/router/index.js`의 `routes`에 한 줄. 메뉴에 보여야 하면 `components/AppShell.vue`의 `nav` 배열에 한 줄(아이콘은 lucide-vue-next).
+5. `src/router/index.js`의 `routes`에 한 줄. 메뉴에 보여야 하면 `components/AppShell.vue`의 `allNav` 배열에 한 줄(아이콘은 lucide-vue-next).
 6. 면접 한 건에 속한 화면이면 맨 위에 `<InterviewHeader :interview="…" current="prep|room|review" />`를 둔다.
 7. **주차별 목업에 언제부터 보일지 정한다**(`docs/setup.md`의 "주차별 목업"). 새 화면·새 기능은 정하지 않으면 3주 차 목업부터 보인다.
    - 특정 주차부터 보여야 하면 `src/lib/features.js`의 `FIRST_SHOWN`에 `이름: 주차`를 더한다.

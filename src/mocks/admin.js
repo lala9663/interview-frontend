@@ -1,4 +1,4 @@
-// 모의 관리자 집계(계약 2.11). 값은 화면 모양을 보기 위한 것이고 실제 계산은 백엔드가 한다.
+// 모의 관리자 집계(API 명세 2.11). 값은 화면 모양을 보기 위한 것이고 실제 계산은 백엔드가 한다.
 // server.js가 routes에 펼쳐 넣는다: adminRoutes({ db, cand, interviewView })
 import * as D from './data.js'
 
@@ -85,10 +85,10 @@ export function adminRoutes({ db, cand, interviewView }) {
         byMethod: { RULE: Math.round(utter * 0.74), QUESTION_MATCH: Math.round(utter * 0.11), LLM: Math.round(utter * 0.1), CHANNEL: 0, MANUAL: Math.round(utter * 0.03), NONE: Math.round(utter * 0.02) },
         manualRate: 0.03, unknownRate: 0.02,
       },
-      questions: {
-        prepared: ended * 7, asked: Math.round(ended * 4.6), askedRate: 0.66, autoMatched: Math.round(ended * 1.7), autoMatchedRate: 0.37,
-        bySource: [['JD', 2, 1.1], ['RESUME', 3, 2.4], ['BANK', 2, 1.1]].map(([source, p, a]) => ({ source, prepared: ended * p, asked: Math.round(ended * a), askedRate: round2(a / p) })),
-      },
+      // 출처별 물은 수의 합이 전체 물은 수와 같아야 한다(API 명세 2.11)
+      questions: ((bySource) => ({
+        prepared: ended * 7, asked: bySource.reduce((n, s) => n + s.asked, 0), askedRate: 0.66, autoMatched: Math.round(ended * 1.7), autoMatchedRate: 0.37, bySource,
+      }))([['JD', 2, 1.1], ['RESUME', 3, 2.4], ['BANK', 2, 1.1]].map(([source, p, a]) => ({ source, prepared: ended * p, asked: Math.round(ended * a), askedRate: round2(a / p) }))),
       reports: { liveCount: ended, refinedCount: Math.max(0, ended - 1), liveSecondsMedian: 41, liveSecondsMax: 133, refinedSecondsMedian: 252, refinedSecondsMax: 640 },
       jobs: [{ type: 'BRIEFING', succeeded: ended + 30, failed: 1 }, { type: 'AI_EVALUATION', succeeded: ended * 2 - 1, failed: 0 }, { type: 'REPORT', succeeded: ended * 2 - 1, failed: 2 }],
     }

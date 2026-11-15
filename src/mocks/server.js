@@ -1,5 +1,5 @@
 // 모의 백엔드. src/api/http.js가 VITE_API_MODE=mock일 때 여기를 부른다.
-// 경로와 응답 모양은 계약 문서와 같게 유지한다. 엔드포인트를 더하면 routes 배열에 한 줄을 더한다.
+// 경로와 응답 모양은 API 명세와 같게 유지한다. 엔드포인트를 더하면 routes 배열에 한 줄을 더한다.
 import { ApiError } from '@/api/http.js'
 import * as D from './data.js'
 import { adminRoutes } from './admin.js'
@@ -62,14 +62,30 @@ function interviewView(it) {
     scheduledAt: it.scheduledAt, durationMinutes: it.durationMinutes,
     interviewers: it.interviewerIds.map((id) => userRef(id)),
     roomId: it.roomId, roomStatus: it.roomStatus,
-    briefingStatus: it.briefingStatus, reportStatus: it.reportStatus, reportBasis: it.reportBasis,
+    briefingStatus: it.briefingStatus, reportStatus: it.reportStatus,
+    // 보정본은 주차별 목업에서 그 주차부터 보인다(lib/features.js). 그 전에는 초안으로 보인다.
+    reportBasis: it.reportBasis === 'REFINED' && !has('refinedReport') ? 'LIVE' : it.reportBasis,
+  }
+}
+
+/** 지금 차수(API 명세 2.10): 끝나지 않은 첫 면접, 없으면 마지막으로 완료된 면접. 취소된 면접은 세지 않는다. */
+function currentOf(its) {
+  return its.find((i) => i.status !== 'DONE' && i.status !== 'CANCELED') || [...its].reverse().find((i) => i.status === 'DONE') || null
+}
+/** 방(API 명세 2.10의 모양) */
+function roomView(it) {
+  const us = db.utterances.get(it.roomId) || []
+  return {
+    id: it.roomId, interviewId: it.id, status: it.roomStatus, createdAt: it._createdAt || null,
+    startedAt: it._startedAt || null, endedAt: it._endedAt || null,
+    lastSeq: us.reduce((m, u) => Math.max(m, u.seq), 0), refined: it.reportBasis === 'REFINED',
   }
 }
 
 function candidateRow(c) {
   const its = db.interviews.filter((i) => i.candidateId === c.id).sort((a, b) => a.seq - b.seq)
-  const current = its.find((i) => i.status !== 'DONE' && i.status !== 'CANCELED') || its[its.length - 1]
-  const ids = [...new Set(its.flatMap((i) => i.interviewerIds))]
+  const current = currentOf(its)
+  const ids = current ? current.interviewerIds : [] // 지금 차수 면접의 면접관(API 명세 2.10)
   return {
     id: c.id, applicantNo: c.applicantNo, name: c.name, track: c.track, jobCode: c.jobCode, jobTitle: c.jobTitle,
     interviewers: ids.map((id) => ({ id, name: D.users.find((u) => u.id === id).name })),
@@ -79,7 +95,10 @@ function candidateRow(c) {
 }
 
 function questionsOf(it) {
-  if (!db.questions.has(it.id)) db.questions.set(it.id, D.questionsFor(cand(it.candidateId), it))
+  if (!db.questions.has(it.id)) {
+    // 질문 은행에서 온 질문은 주차별 목업에서 질문 은행이 보이는 주차부터 넣는다(lib/features.js)
+    db.questions.set(it.id, D.questionsFor(cand(it.candidateId), it).filter((q) => q.source !== 'BANK' || has('questionBank')))
+  }
   return db.questions.get(it.id)
 }
 function utterancesOf(it) {
@@ -109,7 +128,7 @@ export const mockStore = {
   },
   saveFollowUps(roomId, basedOnSeq, items) {
     const list = db.followUps.get(Number(roomId)) || []
-    items.forEach((f) => list.push({ id: f.id, basedOnSeq, text: f.text, rationale: f.rationale, used: false }))
+    items.forEach((f) => list.push({ id: nextId(), clientId: f.id, basedOnSeq, text: f.text, rationale: f.rationale, used: false, questionId: null, createdAt: new Date().toISOString() }))
     db.followUps.set(Number(roomId), list)
   },
   markAsked(questionId, atSeq) {
@@ -160,9 +179,15 @@ const routes = [
     if (!c) throw new ApiError(404, 'CANDIDATE_NOT_FOUND', '면접자를 찾을 수 없습니다.')
     return { ...c, interviews: db.interviews.filter((i) => i.candidateId === c.id).sort((a, b) => a.seq - b.seq).map(interviewView) }
   }],
-  ['GET', '/candidates/:id/progress', ([id]) => ({
-    items: db.interviews.filter((i) => i.candidateId === Number(id)).sort((a, b) => a.seq - b.seq).map(interviewView),
-  })],
+  ['GET', '/candidates/:id/progress', ([id]) => {
+    const its = db.interviews.filter((i) => i.candidateId === Number(id)).sort((a, b) => a.seq - b.seq)
+    const current = currentOf(its)
+    return {
+      candidateId: Number(id),
+      currentStage: current ? { type: current.type, status: current.status } : null,
+      items: its.map((i) => ({ interviewId: i.id, seq: i.seq, type: i.type, mode: i.mode, status: i.status, scheduledAt: i.scheduledAt, reportStatus: i.reportStatus, current: i === current })),
+    }
+  }],
   ['POST', '/candidates/:id/interviews', ([id], { body }) => {
     const its = db.interviews.filter((i) => i.candidateId === Number(id))
     const it = { id: nextId(), candidateId: Number(id), type: body.type, seq: its.length + 1, mode: body.mode, status: body.scheduledAt ? 'SCHEDULED' : 'WAITING', scheduledAt: body.scheduledAt || null, durationMinutes: body.durationMinutes || 30, interviewerIds: [me().id], roomId: null, roomStatus: null, briefingStatus: null, reportStatus: null, reportBasis: null }
@@ -249,17 +274,17 @@ const routes = [
 
   ['POST', '/interviews/:id/room', ([id]) => {
     const it = intv(id)
-    if (!it.roomId) Object.assign(it, { roomId: nextId(), roomStatus: 'CREATED' })
-    return { id: it.roomId, interviewId: it.id, status: it.roomStatus }
+    if (!it.roomId) Object.assign(it, { roomId: nextId(), roomStatus: 'CREATED', _createdAt: new Date().toISOString() })
+    return roomView(it)
   }],
   ['GET', '/rooms/:id', ([id]) => {
     const it = byRoom(id)
-    return { id: it.roomId, interviewId: it.id, status: it.roomStatus, startedAt: it._startedAt || null, endedAt: it._endedAt || null }
+    return roomView(it)
   }],
   ['POST', '/rooms/:id/start', ([id]) => {
     const it = byRoom(id)
     Object.assign(it, { roomStatus: 'LIVE', status: 'IN_PROGRESS', _startedAt: it._startedAt || new Date().toISOString() })
-    return { id: it.roomId, interviewId: it.id, status: 'LIVE', startedAt: it._startedAt }
+    return roomView(it)
   }],
   ['POST', '/rooms/:id/end', ([id]) => {
     const it = byRoom(id)
@@ -275,7 +300,7 @@ const routes = [
         it.reportBasis = 'REFINED'
       }, 12000)
     })
-    return { id: it.roomId, interviewId: it.id, status: 'ENDED' }
+    return roomView(it)
   }],
   ['POST', '/rooms/:id/ticket', ([id]) => ({ ticket: 'mock-ticket', agentWsUrl: `mock://rooms/${id}`, expiresIn: 300 })],
   ['GET', '/rooms/:id/utterances', ([id], { params }) => ({
@@ -286,11 +311,14 @@ const routes = [
     for (const [roomId, list] of db.followUps) {
       const f = list.find((x) => String(x.id) === String(id))
       if (!f) continue
-      f.used = true
       const it = byRoom(roomId)
       const qs = questionsOf(it)
+      const made = f.used && qs.find((x) => x.id === f.questionId) // 이미 채택했으면 그 질문을 돌려준다
+      if (made) return made
+      f.used = true
       const q = { id: nextId(), interviewId: it.id, source: 'FOLLOW_UP', category: '꼬리질문', text: f.text, intent: f.rationale, orderNo: qs.length + 1, asked: false, askedAtSeq: null, hidden: false, parentQuestionId: null }
       qs.push(q)
+      f.questionId = q.id
       return q
     }
     throw new ApiError(404, 'FOLLOW_UP_NOT_FOUND', '꼬리질문을 찾을 수 없습니다.')
@@ -315,7 +343,7 @@ const routes = [
     return list[list.length - 1]
   }],
   ['GET', '/interviews/:id/report/versions', ([id]) => ({
-    items: (db.reports.get(Number(id)) || []).map((r) => ({ version: r.version, basis: r.basis, status: r.status, generatedAt: r.generatedAt })),
+    items: [...(db.reports.get(Number(id)) || [])].reverse(),
   })],
   ['POST', '/interviews/:id/report/regenerate', ([id]) => {
     const it = intv(id)
@@ -346,7 +374,8 @@ const routes = [
   }],
   ...adminRoutes({ db, cand, interviewView }),
   ['GET', '/question-bank', (_, { params }) => ({
-    items: db.bank.filter((q) => (!params?.jobCode || q.jobCode === params.jobCode) && (!params?.q || q.text.includes(params.q))),
+    items: db.bank.filter((q) => (!params?.jobCode || q.jobCode === params.jobCode) && (!params?.category || q.category === params.category) && (!params?.q || q.text.includes(params.q))
+      && (has('experienced') || !['JOB', 'PORTFOLIO'].includes(q.interviewType))),
   })],
   ['POST', '/question-bank', (_, { body }) => {
     const q = { id: nextId(), ...body }

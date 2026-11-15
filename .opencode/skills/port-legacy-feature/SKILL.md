@@ -23,7 +23,7 @@ description: 사내에 먼저 반입돼 있던 기존 프로젝트(Python + Vue�
 | LLM 호출, 프롬프트, STT·오디오, 화자 판정, 질문 매칭 | **agent** (`interview-agent`) |
 | 화면이 Python 서버를 직접 부르던 AI 기능 | backend가 받아서 agent를 부른다(프론트는 backend만 안다. 예외: 면접 방 WebSocket) |
 
-기능 하나가 세 레포에 걸치면 레포마다 작업을 나누고, 사이를 잇는 계약을 먼저 정한다(skill `change-api-contract`). 다른 두 레포의 `port-legacy-feature` skill에 각자의 절차가 있다.
+기능 하나가 세 레포에 걸치면 레포마다 작업을 나누고, 사이를 잇는 API 명세를 먼저 정한다(skill `change-api-contract`). 다른 두 레포의 `port-legacy-feature` skill에 각자의 절차가 있다.
 
 ## 3단계: 이미 있는지 확인한다
 같은 기능이 이름만 다르게 이미 있을 수 있다. 아래에서 찾아본다.
@@ -34,15 +34,15 @@ description: 사내에 먼저 반입돼 있던 기존 프로젝트(Python + Vue�
 있으면 새로 만들지 말고 **차이만** 더한다. 기존 방식과 지금 방식이 충돌하면(예: 기존은 AI 점수를 합산, 지금은 참고용으로 분리) 지금 방식을 유지하고, 요청자에게 차이를 알린다.
 
 ## 4단계: 프론트 몫을 옮긴다
-1. API가 필요하면 계약에 더하고 `add-api-call` 절차대로 `api/index.js` + `mocks/server.js`.
+1. API가 필요하면 API 명세에 더하고 `add-api-call` 절차대로 `api/index.js` + `mocks/server.js`.
 2. 화면은 `add-screen` 절차대로 `features/<기능>/`에 **다시 쓴다**. 기존 코드에서 가져오는 것은 동작과 문구이고, 바꾸는 것은 다음이다.
    | 기존 | 지금 |
    | --- | --- |
-   | TypeScript (`.ts`, `lang="ts"`, 타입·인터페이스) | JavaScript. 타입 표기를 지우고 모양은 계약 문서를 따른다 |
+   | TypeScript (`.ts`, `lang="ts"`, 타입·인터페이스) | JavaScript. 타입 표기를 지우고 모양은 API 명세를 따른다 |
    | 다른 UI 라이브러리(shadcn-vue, reka-ui, Element 등) | `styles/main.css`의 공용 클래스와 `components/`의 것 |
    | 데이터 라이브러리(vue-query 등) | `api` 함수 + `ref` + `usePolling` |
    | 직접 색, 자체 CSS 파일 | 색 토큰 |
-   | 그 프로젝트의 API 필드 이름(snake_case 등) | 계약의 camelCase |
+   | 그 프로젝트의 API 필드 이름(snake_case 등) | API 명세의 camelCase |
    | SSE(EventSource) 실시간 | 면접 방 WebSocket 이벤트(`work-on-live-room`) |
 3. 새 npm 패키지를 가져오지 않는다. 꼭 필요하면 사내 미러에 있는지 확인하고 이유를 PR에 적는다.
 4. 기존 화면의 문구·단축키·빈 화면 안내처럼 사용자가 익숙한 것은 살린다.

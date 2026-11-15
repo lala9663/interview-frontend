@@ -1,8 +1,8 @@
-# API 계약 (세 레포 공통)
+# API 명세 (세 레포 공통)
 
 > 다루는 것: 프론트 ↔ 백엔드 REST, 프론트 ↔ Agent WebSocket, 백엔드 ↔ Agent 내부 API.
 >
-> 이 파일이 원본이다. 각 레포의 `docs/contract/api-contract.md`는 이 파일의 복사본이며, 계약을 바꿀 때는 세 레포에 같은 내용을 같은 날 반영한다(절차는 [06-collaboration.md](06-collaboration.md)).
+> 이 파일이 원본이다. 각 레포의 `docs/contract/api-contract.md`는 이 파일의 복사본이며, API 명세를 바꿀 때는 세 레포에 같은 내용을 같은 날 반영한다(절차는 [06-collaboration.md](06-collaboration.md)).
 
 ## 0. 한눈에
 
@@ -278,7 +278,7 @@
 | `GET /interviews/{id}/report/versions` | 최신 버전이 먼저. 항목은 Report 전체 |
 | UploadBatch `errors[]` | 항목에 `code`(오류 코드)가 더 있다. 이력 목록에서는 `errors`가 빈 배열이고 한 건 조회에서 채워진다 |
 | `GET /uploads/template` | 가상 50행 샘플. `?empty=true`면 열 이름만 |
-| 면접자 목록의 `status`, `interviewers`, `briefingStatus`, `currentStage` | "지금 차수" 면접의 것. 지금 차수 = 끝나지 않은(DONE·CANCELED 아닌) 첫 면접, 모두 끝났으면 마지막 면접 |
+| 면접자 목록의 `status`, `interviewers`, `briefingStatus`, `currentStage` | "지금 차수" 면접의 것. 지금 차수 = 끝나지 않은(DONE·CANCELED 아닌) 첫 면접. 남은 면접이 없으면 마지막으로 완료된(DONE) 면접. 취소된 면접은 세지 않으며, 모두 취소됐으면 지금 차수가 없다(`currentStage`는 null) |
 | Interview의 `reportStatus` | 가장 최근 보고서 작업의 상태 |
 | 생성 응답의 HTTP 코드 | 202로 적힌 것 외에는 200. 삭제는 204 |
 | Agent 콜백(5장)의 응답 | utterances·follow-ups `{ saved }`, refined-transcript `{ saved, jobId }`, events `{ ok }` |

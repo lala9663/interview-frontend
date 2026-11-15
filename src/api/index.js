@@ -1,5 +1,5 @@
-// 계약의 엔드포인트를 기능별로 묶은 함수들. 경로 문자열은 이 파일에만 둔다.
-// 엔드포인트를 더할 때: 계약 문서 → 여기 → src/mocks/server.js(같은 경로) 순서로 고친다.
+// API 명세의 엔드포인트를 기능별로 묶은 함수들. 경로 문자열은 이 파일에만 둔다.
+// 엔드포인트를 더할 때: API 명세 → 여기 → src/mocks/server.js(같은 경로) 순서로 고친다.
 import { http } from './http.js'
 
 /**
@@ -73,7 +73,7 @@ export const roomApi = {
   useFollowUp: (followUpId) => http.post(`/follow-ups/${followUpId}/use`),
 }
 
-// 관리자 집계(계약 2.11). 모두 ADMIN 전용, 읽기 전용.
+// 관리자 집계(API 명세 2.11). 모두 ADMIN 전용, 읽기 전용.
 export const adminApi = {
   operations: (recruitmentId, date) => http.get('/admin/operations', { recruitmentId, date }),
   quality: (recruitmentId) => http.get('/admin/quality', { recruitmentId }),

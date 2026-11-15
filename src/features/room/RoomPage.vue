@@ -14,6 +14,7 @@ import { interviewApi, roomApi } from '@/api/index.js'
 import { isMock } from '@/api/http.js'
 import { useUi } from '@/stores/ui.js'
 import { INTERVIEW_TYPE, labelOf } from '@/lib/labels.js'
+import { has } from '@/lib/features.js'
 import { clock } from '@/lib/format.js'
 
 // 시연용 빌드에서만 싣는 설명 띠(지금 시스템이 하는 일, 멈춤·배속)
@@ -285,7 +286,7 @@ const notice = computed(() => {
     <div v-else class="flex flex-1 items-center justify-center text-sub">면접 방을 여는 중입니다…</div>
 
     <Modal v-if="confirmEnd" title="면접을 종료할까요?" @close="confirmEnd = false">
-      <p class="leading-relaxed text-sub">종료하면 마이크가 꺼지고, 지금까지의 대화로 <b class="text-ink">AI 참고 평가와 보고서 초안</b>을 만듭니다. 종료한 뒤에는 이 방에서 다시 녹취할 수 없습니다.</p>
+      <p class="leading-relaxed text-sub">종료하면 마이크가 꺼지고, 지금까지의 대화로 <b class="text-ink">{{ has('aiEvaluation') ? 'AI 참고 평가와 보고서 초안' : '보고서 초안' }}</b>을 만듭니다. 종료한 뒤에는 이 방에서 다시 녹취할 수 없습니다.</p>
       <template #footer>
         <button class="btn" @click="confirmEnd = false">계속 진행</button>
         <button class="btn btn-danger" @click="end">면접 종료</button>

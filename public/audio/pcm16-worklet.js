@@ -1,4 +1,4 @@
-// 마이크 소리를 16kHz 모노 PCM16으로 바꿔 100ms(1600샘플)씩 내보낸다. 계약 3.1의 오디오 형식.
+// 마이크 소리를 16kHz 모노 PCM16으로 바꿔 100ms(1600샘플)씩 내보낸다. API 명세 3.1의 오디오 형식.
 // AudioWorklet 안에서 돌기 때문에 import를 쓰지 않는 단독 파일이다.
 const TARGET_RATE = 16000
 const FRAME = 1600

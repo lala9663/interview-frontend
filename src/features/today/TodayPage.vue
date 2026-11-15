@@ -106,7 +106,7 @@ const action = (it) => ({ IN_PROGRESS: '면접 방으로', SCHEDULED: '준비하
           <span class="text-[0.86rem] text-faint">{{ todays.length }}건</span>
         </header>
         <div v-if="loading" class="space-y-2 py-3"><div v-for="n in 4" :key="n" class="h-14 animate-pulse rounded-md bg-sunken" /></div>
-        <EmptyState v-else-if="!todays.length" title="오늘 예정된 면접이 없습니다" hint="면접자 메뉴에서 면접을 등록하거나 면접관 매칭을 실행하세요.">
+        <EmptyState v-else-if="!todays.length" title="오늘 예정된 면접이 없습니다" hint="관리자가 관리 > 등록 · 매칭에서 면접자를 올리고 면접관 매칭을 실행하면 여기에 보입니다.">
           <template #icon><CalendarClock :size="22" /></template>
         </EmptyState>
         <ul v-else>

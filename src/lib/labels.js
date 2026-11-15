@@ -1,4 +1,4 @@
-// 계약(docs/contract/api-contract.md)의 열거형 → 화면에 쓰는 한국어와 색.
+// API 명세(docs/contract/api-contract.md)의 열거형 → 화면에 쓰는 한국어와 색.
 // 열거형이 늘면 여기만 고친다. tone은 main.css의 .tone-* 이름이다.
 
 export const TRACK = {

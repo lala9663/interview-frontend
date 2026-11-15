@@ -1,4 +1,4 @@
-// 방의 화면 상태와, Agent 이벤트(계약 3.2)를 그 상태에 반영하는 순수 함수.
+// 방의 화면 상태와, Agent 이벤트(API 명세 3.2)를 그 상태에 반영하는 순수 함수.
 // 화면·소켓과 떨어져 있어 단위 테스트가 쉽다: room-state.test.js
 
 export function createRoomState() {

@@ -27,8 +27,14 @@ npm run dev:api
 | `VITE_API_MODE` | `mock` / `api` | `mock`이면 네트워크 없이 `src/mocks`가 답한다 |
 | `VITE_API_BASE_URL` | 예: `http://localhost:8080/api/v1` | 백엔드 주소. 운영은 같은 도메인의 `/api/v1` |
 | `VITE_AUDIO_KEEP` | `true` / (없음) | Agent가 녹음을 보관하도록 바뀌면 `true`. 면접 시작 안내 문구가 달라진다 |
+| `VITE_ROUTER` | `hash` / (없음) | `hash`면 주소의 `#` 뒤로 화면을 구분한다. 서버 없이 여는 목업용 |
+| `VITE_MOCK_MIC` | `off` / (없음) | `off`면 마이크를 요청하지 않고 대본만 흘려보낸다(목업용) |
+| `VITE_DEMO_GUIDE` | `on` / (없음) | `on`이면 면접 방의 설명 띠와 "달라진 것" 버튼이 나온다(목업용) |
+| `VITE_DEMO_WEEK` | 예: `2026-w48` | 주차별 목업의 주차. 빌드 스크립트가 넣는다. 없으면 모든 기능이 켜진다 |
 
-파일: `.env.mock`(npm run dev), `.env.development`(npm run dev:api), `.env.production`(빌드).
+파일: `.env.mock`(npm run dev), `.env.development`(npm run dev:api), `.env.production`(빌드), `.env.demo`(npm run build:demo).
+
+현업 시연용 목업(서버 없이 여는 HTML, 주차마다 한 파일)은 `npm run build:demo`로 만든다. 자세한 것은 `docs/setup.md`의 "주차별 목업".
 
 ## 화면
 
@@ -58,4 +64,4 @@ npm run check      # 린트 + 테스트 + 빌드
 
 - [AGENTS.md](AGENTS.md): AI 코딩 도구(OpenCode)와 새로 온 사람이 먼저 읽는 규칙
 - [docs/architecture.md](docs/architecture.md), [docs/realtime-room.md](docs/realtime-room.md), [docs/ui-guide.md](docs/ui-guide.md), [docs/setup.md](docs/setup.md), [docs/auth.md](docs/auth.md), [docs/open-questions.md](docs/open-questions.md)
-- [docs/contract/api-contract.md](docs/contract/api-contract.md): 세 레포 공통 API 계약(복사본)
+- [docs/contract/api-contract.md](docs/contract/api-contract.md): 세 레포 공통 API 명세(복사본)

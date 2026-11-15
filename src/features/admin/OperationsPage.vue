@@ -15,7 +15,7 @@ import { INTERVIEW_STATUS, INTERVIEW_TYPE, labelOf } from '@/lib/labels.js'
 const ui = useUi()
 const router = useRouter()
 
-// 계약 2.11의 alerts 값 → 화면 문구. tone은 심각도(bad: 지금 손써야 함, warn: 지켜볼 것)
+// API 명세 2.11의 alerts 값 → 화면 문구. tone은 심각도(bad: 지금 손써야 함, warn: 지켜볼 것)
 // 60분이 넘으면 "1시간 20분"처럼 적는다
 const span = (m) => (m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}` : `${m}분`)
 const ALERT = {

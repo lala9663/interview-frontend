@@ -25,9 +25,9 @@ DSInterview(면접 지원 서비스)의 화면(면접관·관리자용). 세 레
 
 ```
 src/
-  api/http.js        fetch 한 곳(토큰, 401 처리, mock 전환). 화면에서 직접 쓰지 않는다
+  api/http.js        fetch 한 곳(토큰, 401 처리, mock 전환). 화면에서 호출에 직접 쓰지 않는다(`isMock`만 가져다 쓴다)
   api/index.js       엔드포인트 함수(경로 문자열은 여기에만)
-  mocks/             모의 백엔드(server.js), 모의 Agent 소켓(socket.js), 가상 데이터(data.js), 주차별 목업의 변경 요약(changelog.js)
+  mocks/             모의 백엔드(server.js, 관리자 집계는 admin.js), 모의 Agent 소켓(socket.js), 가상 데이터(data.js), 목업 재생 상태(demo.js), 주차별 목업의 변경 요약(changelog.js)
   stores/            pinia: auth(로그인), ui(테마·신입/경력 탭과 채용 선택·토스트)
   lib/               labels.js(열거형→한국어·색), format.js(시각), poll.js(작업 대기), features.js(주차별 목업에서 켤 기능)
   components/        여러 화면이 같이 쓰는 것(AppShell, InterviewHeader, PhaseSteps, StageTrack, Modal …)
@@ -36,12 +36,12 @@ src/
   router/index.js    라우트 표
   styles/main.css    색 토큰(CSS 변수)과 공용 클래스(.btn .card .badge .input …)
 public/audio/pcm16-worklet.js   마이크 → 16kHz PCM16 (AudioWorklet)
-docs/                문서. docs/contract/api-contract.md가 API 계약 복사본
+docs/                문서. docs/contract/api-contract.md가 API 명세 복사본
 ```
 
 ## 규칙
 
-1. **계약이 먼저다.** 필드·경로·열거형은 `docs/contract/api-contract.md`를 따른다. 화면에서 필요한 값이 계약에 없으면 임의로 만들지 말고 계약 변경 절차(skill `change-api-contract`)를 따른다.
+1. **API 명세가 먼저다.** 필드·경로·열거형은 `docs/contract/api-contract.md`를 따른다. 화면에서 필요한 값이 API 명세에 없으면 임의로 만들지 말고 API 변경 절차(skill `change-api-contract`)를 따른다.
 2. **API를 더하면 세 곳을 같이 고친다**: `api/index.js` → `mocks/server.js`(같은 경로·같은 모양) → 화면. mock이 빠지면 `npm run dev`에서 `MOCK_ROUTE_MISSING`이 난다.
 3. **열거형을 화면에 그대로 쓰지 않는다.** `lib/labels.js`의 표로 한국어와 색을 얻는다(`StatusBadge`).
 4. **색은 토큰으로만.** `bg-surface text-ink border-line text-brand …`처럼 `tailwind.config.js`에 이어진 이름을 쓴다. `#hex`·`bg-blue-500` 같은 직접 색을 쓰지 않는다(다크 모드가 깨진다).
@@ -58,7 +58,7 @@ docs/                문서. docs/contract/api-contract.md가 API 계약 복사�
 ## 화면을 더하는 순서
 
 1. `features/<기능>/<Name>Page.vue` 작성
-2. `router/index.js`에 한 줄, 메뉴에 보여야 하면 `components/AppShell.vue`의 `nav`에 한 줄
+2. `router/index.js`에 한 줄, 메뉴에 보여야 하면 `components/AppShell.vue`의 `allNav`에 한 줄
 3. 필요한 API가 있으면 규칙 2대로
 4. `npm run dev`로 1366×768에서 확인, `npm run check`
 
@@ -68,13 +68,14 @@ docs/                문서. docs/contract/api-contract.md가 API 계약 복사�
 - 작업 브랜치는 `dev`에서 따서 하루 이틀 안에 PR로 `dev`에 합친다(스쿼시 병합: 작업 하나가 커밋 하나로 남는다). 오래 사는 작업 브랜치를 두지 않는다.
 - `main`에는 직접 커밋하지 않는다. 화요일에 병합 담당이 세 서비스를 함께 띄워 확인한 뒤 `dev`를 `main`으로 올리고(일반 병합) 태그를 붙인다(예: `2026-w47`). 세 레포는 같은 날 같은 태그로 올린다.
 - `dev`는 항상 빌드되고 테스트가 통과해야 한다. 깨졌으면 새 작업보다 복구가 먼저다.
-- PR은 작게 올린다. PR에 `npm run check` 결과를 붙인다.
-- 커밋 메시지(= PR 제목)는 `<영역>: <무엇을 왜>` 한 줄, 한국어. 예: `speaker: 되묻기 구간 규칙 추가`. 영역은 기능 폴더나 패키지 이름이다. 계약을 바꾸면 앞에 `[계약 변경]`을 붙인다. `dev`에는 스쿼시로 합치므로 PR 제목이 그대로 커밋 한 줄이 된다.
-- 리뷰는 1명, 영역이 다른 사람이 본다. 계약을 바꾸는 PR은 세 명 모두 확인한다.
+- 작업 브랜치 이름은 `feat/<짧은-설명>`, `fix/<짧은-설명>`.
+- PR은 작게 올린다(리뷰하는 사람이 15분 안에 읽을 크기, 한 가지 목적). PR에 `npm run check` 결과를 붙인다.
+- 커밋 메시지(= PR 제목)는 `<영역>: <무엇을 왜>` 한 줄, 한국어. 예: `speaker: 되묻기 구간 규칙 추가`. 영역은 기능 폴더나 패키지 이름이다. API 명세를 바꾸면 앞에 `[API 변경]`을 붙인다. `dev`에는 스쿼시로 합치므로 PR 제목이 그대로 커밋 한 줄이 된다.
+- 리뷰는 1명, 영역이 다른 사람이 본다. API 명세를 바꾸는 PR은 세 명 모두 확인한다.
 - 덜 끝난 화면은 라우트·메뉴에 연결하지 않거나 `import.meta.env.VITE_FEATURE_<이름> === 'true'`로 가린 채 합친다.
   - 이것은 `lib/features.js`(규칙 13)와 다르다. `VITE_FEATURE_*`는 **아직 못 쓰는 기능**을 모든 빌드에서 숨기는 것이고, `features.js`는 **다 만든 기능**을 주차별 목업에서만 그 주차까지 숨기는 것이다. 덜 끝난 기능을 `features.js`로 가리지 않는다(개발 서버와 배포에서는 그대로 보인다).
 - 여러 사람이 동시에 건드리기 쉬운 파일: `router/index.js`, `api/index.js`, `mocks/server.js`, `lib/labels.js`, `components/AppShell.vue`. 여기는 **한 줄 추가** 위주로 고치고, 정렬·포맷 바꾸기 같은 무관한 변경을 섞지 않는다.
-- 계약을 바꾸는 PR은 세 레포에 같은 날 올린다.
+- API 명세를 바꿀 때: API 명세 네 개(원본과 세 레포의 복사본)를 같은 날 같은 내용으로, 문서만 담은 PR로 먼저 올린다(제목에 `[API 변경]`, 세 명 모두 확인). 코드는 그 뒤에 레포마다 따로 올리고, 같은 날이 아니어도 된다(skill `change-api-contract`).
 
 ## 다른 레포와의 관계
 

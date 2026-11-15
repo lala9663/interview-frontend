@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | PT 면접과 인성 면접의 관계 | 서로 다른 면접(차수)으로 등록한다. 같은 날 연달아 봐도 방은 따로 | 동시에 한 방에서 본다면 `features/room`에 면접 유형 전환을 더한다 |
 | 경력 화상 면접(Knox Teams) | 신입과 같이 면접관 노트북 브라우저가 소리를 받는다 | Knox가 전사를 주면 마이크 없이 듣기 전용으로 붙는다(`audioOwner=false`가 기본이 되게) |
-| 평가 등급 | A~D 네 단계 | `features/review/MyEvaluationPanel.vue`의 `grades` |
+| 평가 등급 | A~D 네 단계 | `features/review/MyEvaluationPanel.vue`의 `BASE_GRADES` |
 | 평가 항목 | 백엔드가 주는 `criteria`를 그대로 그린다 | 프론트 변경 없음 |
 | 채용 시스템 입력 화면 | 항목별 점수 + 등급 + 종합 의견을 한 덩어리 글로 복사 | 실제 입력 화면 캡처를 받으면 같은 칸 구성으로 바꾸고 칸마다 복사 버튼을 둔다 |
 | 녹음 보관 | 저장하지 않는다(안내 문구도 그렇게 적혀 있다) | 보관으로 바뀌면 `VITE_AUDIO_KEEP=true` |

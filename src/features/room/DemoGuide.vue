@@ -1,6 +1,7 @@
 <script setup>
 // 시연용 설명 띠: 모의 대본이 도는 동안 "지금 시스템이 무엇을 하는지"를 보여 주고, 재생을 멈추거나 빠르게 한다.
 // 시연용 빌드(VITE_DEMO_GUIDE=on)에서만 쓴다. 실제 Agent에 붙었을 때는 나오지 않는다.
+import { has } from '@/lib/features.js'
 import { computed } from 'vue'
 import { Check, FastForward, Pause, Play, RotateCcw } from 'lucide-vue-next'
 import { demo } from '@/mocks/demo.js'
@@ -18,7 +19,7 @@ const CAPTION = {
   MATCH: () => '준비한 질문 중에서 방금 한 질문을 찾아 왼쪽 목록에 체크합니다.',
   FOLLOWUP: () => '지원자의 답에서 더 물어볼 것을 찾아 오른쪽에 후보로 올립니다.',
   IDLE: () => '다음 말을 기다립니다.',
-  END: () => '대본이 끝났습니다. 위쪽의 "면접 종료"를 누르면 AI 참고 평가와 보고서를 볼 수 있습니다.',
+  END: () => `대본이 끝났습니다. 위쪽의 "면접 종료"를 누르면 ${has('aiEvaluation') ? 'AI 참고 평가와 보고서' : '보고서'}를 볼 수 있습니다.`,
 }
 
 const caption = computed(() => {

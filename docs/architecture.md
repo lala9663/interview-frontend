@@ -48,8 +48,8 @@ features/room/use-microphone.js ── public/audio/pcm16-worklet.js (16kHz PCM1
 | 색·글자 크기 | `styles/main.css`의 `:root` / `.dark` 변수 |
 | 실시간 이벤트 추가 | `features/room/room-state.js`(+테스트), `mocks/socket.js` |
 | 로그인 방식(AD SSO) | `features/auth/LoginPage.vue`, `stores/auth.js` ([auth.md](auth.md)) |
-| 평가 등급 체계(A~D) | `features/review/MyEvaluationPanel.vue`의 `grades` |
+| 평가 등급 체계(A~D) | `features/review/MyEvaluationPanel.vue`의 `BASE_GRADES` |
 
 ## 모의 모드가 있는 이유
 
-세 사람이 세 레포를 동시에 고친다. 프론트는 백엔드·Agent가 덜 됐어도 화면을 만들 수 있어야 하고, 계약만 맞으면 나중에 그대로 붙는다. 그래서 mock은 "계약과 같은 모양"을 지키는 것이 유일한 규칙이다. mock 전용 필드를 만들지 않는다.
+세 사람이 세 레포를 동시에 고친다. 프론트는 백엔드·Agent가 덜 됐어도 화면을 만들 수 있어야 하고, API 명세만 맞으면 나중에 그대로 붙는다. 그래서 mock은 "API 명세와 같은 모양"을 지키는 것이 유일한 규칙이다. mock 전용 필드를 만들지 않는다.

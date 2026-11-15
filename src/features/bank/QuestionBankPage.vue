@@ -8,6 +8,10 @@ import { miscApi } from '@/api/index.js'
 import { useAuth } from '@/stores/auth.js'
 import { useUi } from '@/stores/ui.js'
 import { INTERVIEW_TYPE, labelOf } from '@/lib/labels.js'
+import { has } from '@/lib/features.js'
+
+// 경력용 면접 종류는 주차별 목업에서 경력 채용이 보이는 주차부터 고를 수 있다(lib/features.js)
+const typeChoices = Object.keys(INTERVIEW_TYPE).filter((k) => has('experienced') || !['JOB', 'PORTFOLIO'].includes(k))
 
 const auth = useAuth()
 const ui = useUi()
@@ -94,7 +98,7 @@ async function remove(row) {
         </div>
         <div>
           <p class="label mb-1.5">면접 유형</p>
-          <div class="flex flex-wrap gap-1.5"><button v-for="(v, k) in INTERVIEW_TYPE" :key="k" class="btn btn-sm" :class="form.interviewType === k ? 'btn-primary' : ''" @click="form.interviewType = k">{{ v.label }}</button></div>
+          <div class="flex flex-wrap gap-1.5"><button v-for="k in typeChoices" :key="k" class="btn btn-sm" :class="form.interviewType === k ? 'btn-primary' : ''" @click="form.interviewType = k">{{ labelOf(INTERVIEW_TYPE, k) }}</button></div>
         </div>
         <div><label class="label mb-1.5 block" for="qt">질문</label><textarea id="qt" v-model="form.text" rows="3" class="input" /></div>
       </div>

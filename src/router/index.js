@@ -2,7 +2,7 @@ import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router
 import { useAuth } from '@/stores/auth.js'
 import { has } from '@/lib/features.js'
 
-// 화면을 더할 때: features/<기능>/<Page>.vue를 만들고 여기에 한 줄, components/AppShell.vue의 nav에 한 줄.
+// 화면을 더할 때: features/<기능>/<Page>.vue를 만들고 여기에 한 줄, components/AppShell.vue의 allNav에 한 줄.
 const routes = [
   { path: '/login', name: 'login', component: () => import('@/features/auth/LoginPage.vue'), meta: { public: true, bare: true } },
   { path: '/', name: 'today', component: () => import('@/features/today/TodayPage.vue') },
