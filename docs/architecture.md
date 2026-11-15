@@ -26,8 +26,8 @@ features/room/use-microphone.js ── public/audio/pcm16-worklet.js (16kHz PCM1
 | 단계 | 화면 | 읽는 것 | 쓰는 것 |
 | --- | --- | --- | --- |
 | 면접 전 | `interview/PrepPage.vue` | interview, briefing, questions | 브리핑 생성, 질문 추가·숨김 |
-| 면접 중 | `room/RoomPage.vue` | room, questions, utterances, follow-ups + 소켓 이벤트 | 방 시작·종료, 메모(자동 저장), 질문 "물음" 표시, 꼬리질문 채택 |
-| 면접 후 | `review/ReviewPage.vue` | report, ai-evaluation, criteria, utterances | 내 평가(자동 저장·제출), 보고서 재생성 |
+| 면접 중 | `room/RoomPage.vue` | room, questions, utterances, follow-ups + 소켓 이벤트 | 방 시작·종료, 메모(자동 저장), 질문 "물음" 표시, 꼬리질문 채택(누르거나, 말로 물어 `followup.matched`가 오면 자동) |
+| 면접 후 | `review/ReviewPage.vue` | report, ai-evaluation, criteria, utterances, questions | 내 평가(자동 저장·제출), 보고서 재생성, 물은 질문을 질문 은행에 담기(`AskedQuestionsPanel.vue`) |
 
 세 화면 위에는 같은 `InterviewHeader` + `PhaseSteps`가 있어 지금 어느 단계인지 늘 보인다.
 

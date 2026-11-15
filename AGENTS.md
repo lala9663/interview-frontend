@@ -1,6 +1,6 @@
 # AGENTS.md — interview-frontend
 
-면접 어시스턴트의 화면(면접관·관리자용). 세 레포 중 하나다: **frontend(여기)**, backend(Spring, 기록의 주인), agent(Python, AI·음성).
+DSInterview(면접 지원 서비스)의 화면(면접관·관리자용). 세 레포 중 하나다: **frontend(여기)**, backend(Spring, 기록의 주인), agent(Python, AI·음성).
 
 ## 스택 (바꾸지 않는다)
 
@@ -26,7 +26,7 @@
 src/
   api/http.js        fetch 한 곳(토큰, 401 처리, mock 전환). 화면에서 직접 쓰지 않는다
   api/index.js       엔드포인트 함수(경로 문자열은 여기에만)
-  mocks/             모의 백엔드(server.js), 모의 Agent 소켓(socket.js), 가상 데이터(data.js)
+  mocks/             모의 백엔드(server.js), 모의 Agent 소켓(socket.js), 가상 데이터(data.js), 주차별 목업의 변경 요약(changelog.js)
   stores/            pinia: auth(로그인), ui(테마·신입/경력 탭과 채용 선택·토스트)
   lib/               labels.js(열거형→한국어·색), format.js(시각), poll.js(작업 대기)
   components/        여러 화면이 같이 쓰는 것(AppShell, InterviewHeader, PhaseSteps, StageTrack, Modal …)
