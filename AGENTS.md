@@ -74,6 +74,7 @@ docs/                문서. docs/contract/api-contract.md가 API 명세 복사�
 - 리뷰는 1명, 영역이 다른 사람이 본다. API 명세를 바꾸는 PR은 세 명 모두 확인한다.
 - 덜 끝난 화면은 라우트·메뉴에 연결하지 않거나 `import.meta.env.VITE_FEATURE_<이름> === 'true'`로 가린 채 합친다.
   - 이것은 `lib/features.js`(규칙 13)와 다르다. `VITE_FEATURE_*`는 **아직 못 쓰는 기능**을 모든 빌드에서 숨기는 것이고, `features.js`는 **다 만든 기능**을 주차별 목업에서만 그 주차까지 숨기는 것이다. 덜 끝난 기능을 `features.js`로 가리지 않는다(개발 서버와 배포에서는 그대로 보인다).
+- 작업 중에 범위 밖의 아이디어나 개선점이 나오면 그 자리에서 만들지 않고 세 레포 공통 문서의 `09-backlog.md`(할 목록)에 적는다. 적는 법은 그 문서 맨 위에 있다.
 - 여러 사람이 동시에 건드리기 쉬운 파일: `router/index.js`, `api/index.js`, `mocks/server.js`, `lib/labels.js`, `components/AppShell.vue`. 여기는 **한 줄 추가** 위주로 고치고, 정렬·포맷 바꾸기 같은 무관한 변경을 섞지 않는다.
 - API 명세를 바꿀 때: API 명세 네 개(원본과 세 레포의 복사본)를 같은 날 같은 내용으로, 문서만 담은 PR로 먼저 올린다(제목에 `[API 변경]`, 세 명 모두 확인). 코드는 그 뒤에 레포마다 따로 올리고, 같은 날이 아니어도 된다(skill `change-api-contract`).
 
