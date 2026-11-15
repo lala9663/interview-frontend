@@ -1,4 +1,4 @@
-import { applyEvent, createRoomState, groupTurns, lastSeq } from './room-state.js'
+import { applyEvent, createRoomState, groupTurns, lastSeq, statusNotice } from './room-state.js'
 
 const final = (seq, speaker, extra = {}) => ({ type: 'transcript.final', seq, speaker, speakerMethod: 'LLM', rawText: `raw${seq}`, refinedText: `t${seq}`, startMs: 0, endMs: 1, ...extra })
 
@@ -56,5 +56,20 @@ describe('room-state', () => {
       { seq: 4, speaker: 'INTERVIEWER' },
     ])
     expect(turns.map((t) => t.items.length)).toEqual([1, 2, 1])
+  })
+
+  it('모델이 멈추면 풀릴 때까지 안내 문장을 낸다', () => {
+    const s = createRoomState()
+    expect(statusNotice(s.status)).toBe('')
+    applyEvent(s, { type: 'status', stt: 'DEGRADED', llm: 'OK', queueDepth: 4, audioConnected: true })
+    expect(statusNotice(s.status)).toContain('밀리고')
+    applyEvent(s, { type: 'status', stt: 'DOWN', llm: 'DOWN', queueDepth: 0, audioConnected: true })
+    expect(statusNotice(s.status)).toContain('음성 인식이 멈췄습니다') // 둘 다 멈추면 음성 인식이 먼저다
+    applyEvent(s, { type: 'status', stt: 'OK', llm: 'DOWN', queueDepth: 0, audioConnected: true })
+    expect(statusNotice(s.status)).toContain('꼬리질문')
+    applyEvent(s, { type: 'status', stt: 'OK', llm: 'DEGRADED', queueDepth: 0, audioConnected: true })
+    expect(statusNotice(s.status)).toBe('') // 한 번 실패한 것은 알리지 않는다(다듬기·꼬리질문만 한 번 빠진다)
+    applyEvent(s, { type: 'status', stt: 'OK', llm: 'OK', queueDepth: 0, audioConnected: true })
+    expect(statusNotice(s.status)).toBe('')
   })
 })

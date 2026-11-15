@@ -1,30 +1,54 @@
 // 모의 Agent 소켓. 실제 WebSocket과 같은 이벤트(계약 3장)를 대본대로 내보낸다.
 // 마이크 오디오는 받기만 하고 버린다. "말하고 있다"는 것만 흉내 낸다.
+//
+// 시각은 자체 시계(vt)로 잰다: 일시정지와 배속(demo.paused, demo.speed)을 걸 수 있어야 해서다.
 import { liveScript } from './data.js'
 import { mockStore } from './server.js'
+import { demo, resetDemo } from './demo.js'
+
+const TICK = 50
 
 export class MockRoomSocket {
   constructor(roomId) {
     this.roomId = Number(roomId)
     this.onmessage = () => {}
     this.onclose = () => {}
-    this.timers = []
+    this.queue = []
+    this.vt = 0
+    this.last = Date.now()
     this.seq = 0
     this.index = 0
     this.running = false
     this.manualRole = 'AUTO'
+    resetDemo()
+    demo.total = liveScript.length
+    this.ticker = setInterval(() => this.tick(), TICK)
     this.later(() => {
       this.emit({ type: 'ready', roomId: this.roomId, audio: true, sttModel: 'mock-whisper', llmModel: 'mock-llm', lastSeq: 0 })
       this.emit({ type: 'status', stt: 'OK', llm: 'OK', queueDepth: 0, audioConnected: true })
     }, 200)
   }
 
+  /** 실제로 흐른 시간만큼(배속을 곱해) 자체 시계를 돌리고, 때가 된 일을 순서대로 한다 */
+  tick() {
+    const now = Date.now()
+    const passed = now - this.last
+    this.last = now
+    if (demo.paused) return
+    this.vt += passed * demo.speed
+    const due = this.queue.filter((j) => j.at <= this.vt).sort((a, b) => a.at - b.at)
+    this.queue = this.queue.filter((j) => j.at > this.vt)
+    due.forEach((j) => j.fn())
+  }
   later(fn, ms) {
-    const t = setTimeout(fn, ms)
-    this.timers.push(t)
+    this.queue.push({ at: this.vt + ms, fn })
   }
   emit(event) {
     this.onmessage(event)
+  }
+  stage(stage, done = demo.done) {
+    demo.stage = stage
+    demo.done = done
   }
 
   /** 마이크가 켜지면(첫 오디오 프레임) 대본을 시작한다 */
@@ -53,12 +77,21 @@ export class MockRoomSocket {
     this.emit({ type: 'followup.suggested', basedOnSeq, items })
   }
 
+  /** 대본 한 문장: 받아 적기 → 다듬기·화자 구분 → (면접관이면) 질문 찾기 → (지원자면) 꼬리질문 */
   next() {
-    if (!this.running || this.index >= liveScript.length) return
+    if (!this.running) return
+    if (this.index >= liveScript.length) {
+      demo.speaker = null
+      this.stage('END', [])
+      return
+    }
     const line = liveScript[this.index++]
     const seq = ++this.seq
     const words = line.raw.split(' ')
     const step = 170
+    demo.line = this.index
+    demo.speaker = line.speaker
+    this.stage('LISTEN', [])
     // 부분 전사: 낱말이 조금씩 늘어난다
     words.forEach((_, i) => {
       if (i % 3 === 2 || i === words.length - 1) {
@@ -66,23 +99,37 @@ export class MockRoomSocket {
       }
     })
     const spoken = step * words.length
+    this.later(() => this.stage('REFINE', ['LISTEN']), spoken)
+
+    let t = spoken + 900
+    const q = line.q !== undefined ? mockStore.questions(this.roomId)[line.q] : null
     this.later(() => {
       const speaker = this.manualRole !== 'AUTO' ? this.manualRole : line.speaker
       const method = this.manualRole !== 'AUTO' ? 'MANUAL' : line.q !== undefined ? 'QUESTION_MATCH' : 'LLM'
       const u = { seq, speaker, speakerMethod: method, rawText: line.raw, refinedText: line.refined, startMs: seq * 20000, endMs: seq * 20000 + spoken, matchedQuestionId: null, source: 'LIVE' }
-      if (line.q !== undefined) {
-        const q = mockStore.questions(this.roomId)[line.q]
-        if (q) {
-          u.matchedQuestionId = q.id
-          mockStore.markAsked(q.id, seq)
-          this.later(() => this.emit({ type: 'question.matched', seq, questionId: q.id, similarity: 0.86 }), 250)
-        }
+      if (q) {
+        u.matchedQuestionId = q.id
+        mockStore.markAsked(q.id, seq)
       }
       mockStore.saveUtterance(this.roomId, u)
       this.emit({ type: 'transcript.final', ...u })
-      if (line.followUps) this.later(() => this.suggest(seq, line.followUps), 1400)
-    }, spoken + 700)
-    this.later(() => this.next(), spoken + 2600)
+      this.stage(q ? 'MATCH' : line.followUps ? 'FOLLOWUP' : 'IDLE', ['LISTEN', 'REFINE'])
+    }, t)
+    if (q) {
+      t += 700
+      this.later(() => {
+        this.emit({ type: 'question.matched', seq, questionId: q.id, similarity: 0.86 })
+        this.stage(line.followUps ? 'FOLLOWUP' : 'IDLE', ['LISTEN', 'REFINE', 'MATCH'])
+      }, t)
+    }
+    if (line.followUps) {
+      t += 1500
+      this.later(() => {
+        this.suggest(seq, line.followUps)
+        this.stage('IDLE', [...demo.done, 'FOLLOWUP'])
+      }, t)
+    }
+    this.later(() => this.next(), t + 1500)
   }
 
   pause() {
@@ -91,7 +138,9 @@ export class MockRoomSocket {
 
   close() {
     this.running = false
-    this.timers.forEach(clearTimeout)
+    clearInterval(this.ticker)
+    this.queue = []
+    resetDemo()
     this.onclose({ code: 1000 })
   }
 }

@@ -25,6 +25,17 @@ const db = {
 let seq = 90000
 const nextId = () => ++seq
 
+// 지금 로그인한 사람. 화면을 새로 읽으면 db.me가 사라지므로 브라우저에 남은 로그인 정보로 되찾는다.
+function me() {
+  if (db.me) return db.me
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('iv.user') || 'null')
+    db.me = D.users.find((u) => u.id === saved?.id) || null
+  } catch {
+    /* 저장소를 못 쓰는 환경 */
+  }
+  return db.me || D.users[0]
+}
 const cand = (id) => db.candidates.find((c) => c.id === Number(id))
 const intv = (id) => {
   const it = db.interviews.find((i) => i.id === Number(id))
@@ -123,7 +134,7 @@ const routes = [
     return { accessToken: `mock.${user.id}`, refreshToken: `mock-r.${user.id}`, expiresIn: 1800, user }
   }],
   ['POST', '/auth/logout', () => null],
-  ['GET', '/me', () => db.me || D.users[0]],
+  ['GET', '/me', () => me()],
 
   ['GET', '/recruitments', (_, { params }) => ({ items: D.recruitments.filter((r) => !params?.track || r.track === params.track) })],
   ['GET', '/recruitments/:id', ([id]) => {
@@ -152,7 +163,7 @@ const routes = [
   })],
   ['POST', '/candidates/:id/interviews', ([id], { body }) => {
     const its = db.interviews.filter((i) => i.candidateId === Number(id))
-    const it = { id: nextId(), candidateId: Number(id), type: body.type, seq: its.length + 1, mode: body.mode, status: body.scheduledAt ? 'SCHEDULED' : 'WAITING', scheduledAt: body.scheduledAt || null, durationMinutes: body.durationMinutes || 30, interviewerIds: [db.me?.id || 1], roomId: null, roomStatus: null, briefingStatus: null, reportStatus: null, reportBasis: null }
+    const it = { id: nextId(), candidateId: Number(id), type: body.type, seq: its.length + 1, mode: body.mode, status: body.scheduledAt ? 'SCHEDULED' : 'WAITING', scheduledAt: body.scheduledAt || null, durationMinutes: body.durationMinutes || 30, interviewerIds: [me().id], roomId: null, roomStatus: null, briefingStatus: null, reportStatus: null, reportBasis: null }
     db.interviews.push(it)
     return interviewView(it)
   }],
@@ -170,7 +181,7 @@ const routes = [
       db.interviews.push({ id: nextId(), candidateId: nid, type: 'PT', seq: 1, mode: 'OFFLINE', status: 'WAITING', scheduledAt: null, durationMinutes: 30, interviewerIds: [], roomId: null, roomStatus: null, briefingStatus: null, reportStatus: null, reportBasis: null, _n: i })
     })
     const batch = {
-      id: nextId(), fileName: file?.name || 'upload.xlsx', uploadedAt: new Date().toISOString(), uploadedBy: db.me?.name || '김서연',
+      id: nextId(), fileName: file?.name || 'upload.xlsx', uploadedAt: new Date().toISOString(), uploadedBy: me().name,
       totalRows: 5, successRows: 3, failedRows: 2,
       errors: [
         { rowNumber: 4, column: '지원직무코드', value: 'XX', message: '등록되지 않은 직무 코드입니다.' },
@@ -198,7 +209,7 @@ const routes = [
 
   ['GET', '/interviews', (_, { params }) => {
     let rows = db.interviews
-    if (params?.mine === true || params?.mine === 'true') rows = rows.filter((i) => i.interviewerIds.includes(db.me?.id || 1))
+    if (params?.mine === true || params?.mine === 'true') rows = rows.filter((i) => i.interviewerIds.includes(me().id))
     if (params?.status) rows = rows.filter((i) => i.status === params.status)
     if (params?.recruitmentId) rows = rows.filter((i) => cand(i.candidateId).recruitmentId === Number(params.recruitmentId))
     return paged(rows.map(interviewView), params)
@@ -254,10 +265,10 @@ const routes = [
     const c = cand(it.candidateId)
     // 초안(LIVE) → 잠시 뒤 보정본(REFINED). 실제 서버의 흐름을 짧게 흉내 낸다.
     startJob('REPORT', it.id, 4000, () => {
-      db.reports.set(it.id, [D.reportFor(c, it, 'LIVE')])
+      db.reports.set(it.id, [{ ...D.reportFor(c, it, 'LIVE'), generatedAt: new Date().toISOString() }])
       Object.assign(it, { reportStatus: 'SUCCEEDED', reportBasis: 'LIVE' })
       setTimeout(() => {
-        db.reports.get(it.id).push(D.reportFor(c, it, 'REFINED'))
+        db.reports.get(it.id).push({ ...D.reportFor(c, it, 'REFINED'), generatedAt: new Date().toISOString() })
         it.reportBasis = 'REFINED'
       }, 12000)
     })
@@ -313,10 +324,10 @@ const routes = [
   ['GET', '/ai-jobs/:id', ([id]) => db.jobs.get(Number(id))],
 
   ['GET', '/dashboard/summary', (_, { params }) => {
-    const admin = (db.me?.role || 'ADMIN') === 'ADMIN'
+    const admin = me().role === 'ADMIN'
     const rows = db.interviews
       .filter((i) => !params?.recruitmentId || cand(i.candidateId).recruitmentId === Number(params.recruitmentId))
-      .filter((i) => admin || i.interviewerIds.includes(db.me?.id))
+      .filter((i) => admin || i.interviewerIds.includes(me().id))
       .map(interviewView)
     const today = new Date().toDateString()
     const todayInterviews = rows.filter((i) => i.scheduledAt && new Date(i.scheduledAt).toDateString() === today)

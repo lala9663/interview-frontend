@@ -77,6 +77,19 @@ export function applyEvent(state, e) {
   return state
 }
 
+/**
+ * 모델 상태(status 이벤트의 stt·llm)를 면접관에게 보여 줄 문장으로 바꾼다. 알릴 것이 없으면 ''.
+ * 상태가 풀릴 때까지 계속 떠 있어야 하는 안내다: 왜 글이나 꼬리질문이 안 나오는지, 그동안 무엇을 하면 되는지.
+ */
+export function statusNotice(status) {
+  const stt = status?.stt
+  const llm = status?.llm
+  if (stt === 'DOWN') return '음성 인식이 멈췄습니다. 음성은 계속 받고 있어 면접 뒤에 글로 바뀝니다. 그동안 메모를 써 주세요.'
+  if (llm === 'DOWN') return '꼬리질문 제안과 문장 다듬기가 멈췄습니다. 전사와 준비한 질문은 그대로 쓸 수 있습니다.'
+  if (stt === 'DEGRADED') return '음성 인식이 밀리고 있습니다. 글이 평소보다 늦게 나타납니다.'
+  return ''
+}
+
 /** 연속된 같은 화자의 발화를 한 덩어리로 묶는다(화면 표시용). */
 export function groupTurns(utterances) {
   const turns = []

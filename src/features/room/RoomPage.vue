@@ -1,6 +1,6 @@
 <script setup>
 // 면접 중: 한 화면(스크롤 없음)에 질문 · 대화 · 꼬리질문과 메모. 1366×768 노트북을 기준으로 잡았다.
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Mic, MicOff, Play, Square, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next'
 import Modal from '@/components/Modal.vue'
@@ -8,12 +8,16 @@ import TranscriptPane from './TranscriptPane.vue'
 import QuestionPane from './QuestionPane.vue'
 import AssistPane from './AssistPane.vue'
 import { useRoom } from './use-room.js'
+import { statusNotice } from './room-state.js'
 import { useMicrophone } from './use-microphone.js'
 import { interviewApi, roomApi } from '@/api/index.js'
 import { isMock } from '@/api/http.js'
 import { useUi } from '@/stores/ui.js'
 import { INTERVIEW_TYPE, labelOf } from '@/lib/labels.js'
 import { clock } from '@/lib/format.js'
+
+// 시연용 빌드에서만 싣는 설명 띠(지금 시스템이 하는 일, 멈춤·배속)
+const DemoGuide = isMock && import.meta.env.VITE_DEMO_GUIDE === 'on' ? defineAsyncComponent(() => import('./DemoGuide.vue')) : null
 
 const props = defineProps({ id: { type: [String, Number], required: true } })
 const ui = useUi()
@@ -33,7 +37,8 @@ const requesting = ref(false)
 const keepsAudio = import.meta.env.VITE_AUDIO_KEEP === 'true'
 
 const { state, room, connection, audioOwner, load, connect, disconnect, sendAudio, send, setRole, fixSpeaker, toggleAsked, addQuestion, adoptFollowUp } = useRoom(props.id)
-const mic = useMicrophone((pcm) => sendAudio(pcm))
+// 파일로 여는 시연용 빌드(VITE_MOCK_MIC=off)는 마이크를 요청하지 않는다
+const mic = useMicrophone((pcm) => sendAudio(pcm), { simulate: isMock && import.meta.env.VITE_MOCK_MIC === 'off' })
 
 const elapsed = computed(() => (startedAt.value ? now.value - new Date(startedAt.value).getTime() : 0))
 const planned = computed(() => (interview.value?.durationMinutes || 0) * 60000)
@@ -167,7 +172,8 @@ function onKey(e) {
 const notice = computed(() => {
   if (mic.error.value) return mic.error.value
   if (connection.value === 'reconnecting') return '서버와 연결이 끊겼습니다. 다시 연결하는 중입니다. 메모는 계속 쓸 수 있습니다.'
-  if (state.status.stt === 'DEGRADED') return '음성 인식이 밀리고 있습니다. 글이 평소보다 늦게 나타납니다.'
+  const model = statusNotice(state.status)
+  if (model) return model
   const last = state.notices[state.notices.length - 1]
   return last && Date.now() - last.at < 8000 ? last.message : ''
 })
@@ -231,6 +237,8 @@ const notice = computed(() => {
     </header>
 
     <p v-if="notice" class="flex shrink-0 items-center gap-2 bg-warn-soft px-4 py-1.5 text-[0.88rem] font-medium text-warn" role="status"><TriangleAlert :size="15" />{{ notice }}</p>
+
+    <component :is="DemoGuide" v-if="DemoGuide && live" />
 
     <!-- 세 칸 -->
     <div v-if="phase !== 'loading'" class="grid min-h-0 flex-1 grid-cols-[minmax(250px,22%)_minmax(0,1fr)_minmax(280px,26%)] gap-px bg-line">

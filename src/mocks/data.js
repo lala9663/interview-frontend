@@ -1,11 +1,17 @@
 // 모의 데이터 (전부 가상의 인물). 모양은 계약 문서의 응답과 같다.
 // 백엔드의 local 시드와 비슷하게 맞춰 두면 mock ↔ api 전환 때 화면이 덜 달라진다.
 
-const today = (h, m = 0) => {
-  const d = new Date()
-  d.setHours(h, m, 0, 0)
-  return d.toISOString()
-}
+// 오늘 일정은 지금 시각을 기준으로 잡는다: 언제 열어도 "곧 시작할 면접"과 "진행 중인 방"이 자연스럽게 보인다.
+const MIN = 60000
+const floorTo = (ms, minutes) => Math.floor(ms / (minutes * MIN)) * minutes * MIN
+const loadedAt = Date.now()
+// 기준 칸은 02:30~21:00 사이로 묶는다: 앞뒤 다섯 칸이 모두 오늘 날짜에 들어가야 "오늘 일정"에 나온다.
+const dayStart = new Date(loadedAt).setHours(0, 0, 0, 0)
+const baseSlot = Math.min(Math.max(floorTo(loadedAt, 30), dayStart + 150 * MIN), dayStart + 21 * 60 * MIN)
+/** 지금이 속한 30분 칸에서 n칸 뒤(음수면 앞)의 시각 */
+const slot = (n) => new Date(baseSlot + n * 30 * MIN).toISOString()
+/** m분 전 */
+const ago = (m) => new Date(loadedAt - m * MIN).toISOString()
 const dayOffset = (days, h) => {
   const d = new Date()
   d.setDate(d.getDate() + days)
@@ -18,6 +24,10 @@ export const users = [
   { id: 2, employeeNo: 'E1002', name: '박준호', department: 'SW개발1그룹', role: 'INTERVIEWER', jobCodes: ['SW'] },
   { id: 3, employeeNo: 'E1003', name: '이하린', department: 'HW설계팀', role: 'INTERVIEWER', jobCodes: ['HW', 'AI'] },
   { id: 4, employeeNo: 'E1004', name: '최민재', department: 'AI연구소', role: 'INTERVIEWER', jobCodes: ['AI', 'SW', 'HW'] },
+  { id: 5, employeeNo: 'E1005', name: '정다인', department: 'SW개발2그룹', role: 'INTERVIEWER', jobCodes: ['SW', 'HW'] },
+  { id: 6, employeeNo: 'E1006', name: '송우진', department: 'AI연구소', role: 'INTERVIEWER', jobCodes: ['AI'] },
+  { id: 7, employeeNo: 'E1007', name: '유채은', department: 'HW설계팀', role: 'INTERVIEWER', jobCodes: ['HW'] },
+  { id: 8, employeeNo: 'E1008', name: '권지호', department: 'SW개발1그룹', role: 'INTERVIEWER', jobCodes: ['SW', 'AI'] },
 ]
 
 export const recruitments = [
@@ -84,17 +94,18 @@ const I = (candidateId, type, seq, mode, status, scheduledAt, interviewerIds, ex
 })
 
 export const interviews = [
-  I(101, 'PT', 1, 'OFFLINE', 'DONE', today(9, 30), [1, 2], { roomId: 9001, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'REFINED' }),
-  I(102, 'PT', 1, 'OFFLINE', 'EVALUATING', today(10, 30), [1, 2], { roomId: 9002, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'LIVE' }),
-  I(103, 'PT', 1, 'OFFLINE', 'SCHEDULED', today(13, 30), [1, 3]),
-  I(104, 'PT', 1, 'OFFLINE', 'SCHEDULED', today(14, 30), [1, 3], { briefingStatus: 'RUNNING' }),
-  I(106, 'PT', 1, 'OFFLINE', 'SCHEDULED', today(15, 30), [1, 2]),
-  I(107, 'PERSONALITY', 2, 'OFFLINE', 'SCHEDULED', today(16, 30), [1, 2]),
-  I(105, 'PT', 1, 'OFFLINE', 'SCHEDULED', today(14, 0), [4]),
+  I(101, 'PT', 1, 'OFFLINE', 'DONE', slot(-5), [1, 2], { roomId: 9001, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'REFINED' }),
+  I(102, 'PT', 1, 'OFFLINE', 'EVALUATING', slot(-3), [1, 2], { roomId: 9002, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'LIVE' }),
+  I(103, 'PT', 1, 'OFFLINE', 'SCHEDULED', slot(2), [1, 3]),
+  I(104, 'PT', 1, 'OFFLINE', 'SCHEDULED', slot(3), [1, 3], { briefingStatus: 'RUNNING' }),
+  // 다음 면접(시연에서 면접 방으로 들어갈 면접). 대본이 SW개발 내용이라 SW 지원자로 둔다.
+  I(106, 'PT', 1, 'OFFLINE', 'SCHEDULED', slot(1), [1, 2]),
+  I(107, 'PERSONALITY', 2, 'OFFLINE', 'SCHEDULED', slot(4), [1, 2]),
+  I(105, 'PT', 1, 'OFFLINE', 'SCHEDULED', slot(2), [4]),
   I(108, 'PT', 1, 'OFFLINE', 'WAITING', null, [4], { briefingStatus: null }),
   // 경력: 한 사람이 여러 차수를 본다
   I(201, 'PORTFOLIO', 1, 'ONLINE', 'DONE', dayOffset(-6, 14), [1, 2], { roomId: 9101, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'REFINED' }),
-  I(201, 'JOB', 2, 'ONLINE', 'SCHEDULED', today(17, 0), [1, 2]),
+  I(201, 'JOB', 2, 'ONLINE', 'SCHEDULED', slot(5), [1, 2]),
   I(201, 'PERSONALITY', 3, 'ONLINE', 'WAITING', null, [1], { briefingStatus: null }),
   I(202, 'PORTFOLIO', 1, 'ONLINE', 'DONE', dayOffset(-9, 10), [2], { roomId: 9102, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'REFINED' }),
   I(202, 'JOB', 2, 'ONLINE', 'DONE', dayOffset(-3, 10), [1, 2], { roomId: 9103, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'REFINED' }),
@@ -105,16 +116,31 @@ export const interviews = [
 // 신입 공채는 인원이 많다: 화면이 수십~수백 명에서도 읽히는지 보려고 가상의 면접자를 더 만든다.
 {
   const family = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오']
-  const given = ['서준', '하윤', '도현', '지안', '시우', '수아', '예준', '하은', '주원', '서연', '건우', '채원']
+  const given = ['서준', '하윤', '도현', '지안', '유준', '다은', '민준', '하은', '주원', '나은', '건우', '채원']
+  // 오늘 다른 면접실의 면접(운영 현황용). live: 시작한 지 몇 분, late: 시작이 몇 분 늦는 중, slot: 몇 칸 뒤 예정.
+  // trouble은 운영 현황에서 마이크·전사 문제로 보여 줄 방이다.
+  const todayPlan = {
+    3: { live: 12 }, 10: { live: 21 }, 17: { live: 38 }, 24: { live: 6, trouble: 'NO_AUDIO' }, 31: { live: 17, trouble: 'BACKLOG' },
+    38: { late: 8 }, 4: { slot: 1 }, 11: { slot: 2 }, 18: { slot: 3 }, 25: { slot: 4 }, 32: { slot: 2 },
+  }
+  const roomWho = { SW: [5, 8], AI: [6, 8], HW: [7, 5] }
   const jobOf = [['SW', 'SW개발', [1, 2]], ['AI', 'AI연구', [1, 3]], ['HW', 'HW설계', [4, 3]]]
   const states = ['DONE', 'DONE', 'EVALUATING', 'SCHEDULED', 'SCHEDULED', 'SCHEDULED', 'WAITING']
   for (let i = 0; i < 64; i += 1) {
     const [code, title, who] = jobOf[i % 3]
     const id = 300 + i
-    candidates.push(N(id, `2026H-${String(1000 + i * 7).padStart(5, '0')}`, family[i % 12] + given[(i * 5) % 12], code, title, ['한빛대학교', '새솔대학교', '누리대학교', '가람대학교'][i % 4], '컴퓨터공학'))
+    // 이름이 겹치지 않게: 12명마다 이름 쪽을 7칸씩 민다
+    candidates.push(N(id, `2026H-${String(1000 + i * 7).padStart(5, '0')}`, family[i % 12] + given[(i * 5 + Math.floor(i / 12) * 7) % 12], code, title, ['한빛대학교', '새솔대학교', '누리대학교', '가람대학교'][i % 4], '컴퓨터공학'))
     const st = states[i % states.length]
     const ended = st === 'DONE' || st === 'EVALUATING'
-    interviews.push(I(id, 'PT', 1, 'OFFLINE', st, st === 'WAITING' ? null : dayOffset(ended ? -1 - (i % 3) : i % 4, 9 + (i % 8)), who, ended ? { roomId: 9200 + i, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'REFINED' } : st === 'WAITING' ? { briefingStatus: null } : {}))
+    const plan = todayPlan[i]
+    if (plan?.live) {
+      interviews.push(I(id, 'PT', 1, 'OFFLINE', 'IN_PROGRESS', new Date(floorTo(loadedAt - plan.live * MIN, 5)).toISOString(), roomWho[code], { roomId: 9200 + i, roomStatus: 'LIVE', _startedAt: ago(plan.live), _trouble: plan.trouble || null }))
+    } else if (plan) {
+      interviews.push(I(id, 'PT', 1, 'OFFLINE', 'SCHEDULED', plan.late ? new Date(floorTo(loadedAt - plan.late * MIN, 5)).toISOString() : slot(plan.slot), roomWho[code]))
+    } else {
+      interviews.push(I(id, 'PT', 1, 'OFFLINE', st, st === 'WAITING' ? null : dayOffset(ended ? -1 - (i % 3) : 1 + (i % 3), 9 + (i % 8)), who, ended ? { roomId: 9200 + i, roomStatus: 'ENDED', reportStatus: 'SUCCEEDED', reportBasis: 'REFINED' } : st === 'WAITING' ? { briefingStatus: null } : {}))
+    }
     interviews.push(I(id, 'PERSONALITY', 2, 'OFFLINE', st === 'DONE' && i % 2 ? 'SCHEDULED' : 'WAITING', st === 'DONE' && i % 2 ? dayOffset(1 + (i % 3), 10 + (i % 6)) : null, [1], { briefingStatus: null }))
   }
 }
@@ -203,6 +229,26 @@ export const liveScript = [
   { speaker: 'CANDIDATE', raw: '인터럽트는 이벤트가 생길 때만 처리해서 응답이 빠르고 CPU를 아끼는데 너무 자주 발생하면 오버헤드가 커지고요 폴링은 구현이 단순하고 예측 가능하지만 주기만큼 지연이 생깁니다', refined: '인터럽트는 이벤트가 생길 때만 처리하므로 응답이 빠르고 CPU를 아끼지만, 너무 자주 발생하면 오버헤드가 커집니다. 폴링은 구현이 단순하고 예측 가능하지만 주기만큼 지연이 생깁니다.', followUps: [
     { text: '인터럽트가 너무 잦을 때 실제로 어떤 방법으로 줄일 수 있나요?', rationale: '개념을 실무에 적용하는지 확인' },
   ] },
+  // 면접관이 꼬리질문 후보를 골라 묻는 장면(준비한 질문이 아니므로 q가 없다)
+  { speaker: 'INTERVIEWER', raw: '아까 유실률을 4퍼센트에서 0.2퍼센트로 낮췄다고 하셨는데 그 유실률은 어떤 방법으로 측정하셨어요', refined: '아까 유실률을 4%에서 0.2%로 낮췄다고 하셨는데, 그 유실률은 어떤 방법으로 측정했나요?' },
+  { speaker: 'CANDIDATE', raw: '센서 쪽에서 패킷마다 일련번호를 붙여서 보내고요 수신 쪽에서 번호가 건너뛴 개수를 세었습니다 한 시간씩 열 번 돌려서 평균을 냈습니다', refined: '센서에서 패킷마다 일련번호를 붙여 보내고, 수신 쪽에서 번호가 건너뛴 개수를 세었습니다. 한 시간씩 열 번 돌려 평균을 냈습니다.', followUps: [
+    { text: '열 번의 결과가 서로 얼마나 달랐나요?', rationale: '측정의 신뢰도 확인' },
+    { text: '실제 사용 환경과 시험 환경의 차이는 어떻게 고려했나요?', rationale: '검증 범위에 대한 이해' },
+  ] },
+  { speaker: 'INTERVIEWER', raw: '네 알겠습니다 그러면 메모리가 제한된 상황에서 버퍼를 설계할 때는 뭘 고려해야 할까요', refined: '알겠습니다. 그러면 제한된 메모리에서 버퍼를 설계할 때 고려할 점은 무엇인가요?', q: 3 },
+  { speaker: 'CANDIDATE', raw: '먼저 최악의 경우에 데이터가 얼마나 몰리는지를 계산해서 크기를 정하고요 넘칠 때 오래된 걸 버릴지 새 걸 버릴지 정책을 정해야 합니다 그리고 동적 할당은 단편화 때문에 피하고 정적으로 잡았습니다', refined: '먼저 최악의 경우에 데이터가 얼마나 몰리는지 계산해 크기를 정합니다. 넘칠 때 오래된 것을 버릴지 새것을 버릴지 정책도 정해야 합니다. 동적 할당은 단편화 때문에 피하고 정적으로 잡았습니다.', followUps: [
+    { text: '프로젝트에서는 넘칠 때 어느 쪽을 버리기로 했고, 이유는 무엇인가요?', rationale: '원칙을 실제 결정에 적용했는지 확인' },
+    { text: '최악의 경우를 어떻게 추정했나요?', rationale: '설계 근거의 구체성' },
+  ] },
+  { speaker: 'INTERVIEWER', raw: '좋습니다 기초 질문 하나 드릴게요 프로세스하고 스레드 차이를 설명해 주세요', refined: '좋습니다. 기초 질문을 하나 드리겠습니다. 프로세스와 스레드의 차이를 설명해 주세요.', q: 4 },
+  { speaker: 'CANDIDATE', raw: '프로세스는 독립된 메모리 공간을 가지는 실행 단위고 스레드는 한 프로세스 안에서 메모리를 공유하는 실행 흐름입니다 그래서 스레드는 전환 비용이 적은 대신에 공유 자원을 동기화해야 합니다', refined: '프로세스는 독립된 메모리 공간을 가지는 실행 단위이고, 스레드는 한 프로세스 안에서 메모리를 공유하는 실행 흐름입니다. 스레드는 전환 비용이 적은 대신 공유 자원을 동기화해야 합니다.' },
+  { speaker: 'INTERVIEWER', raw: '네 그럼 그 프로젝트를 다시 한다면 뭘 다르게 하시겠어요', refined: '그럼 그 프로젝트를 다시 한다면 무엇을 다르게 하겠습니까?', q: 6 },
+  { speaker: 'CANDIDATE', raw: '처음부터 로그를 남기는 구조를 만들 것 같습니다 이번에는 문제가 생기고 나서야 타임스탬프를 넣어서 원인을 찾는 데 2주가 걸렸거든요 그리고 부하 테스트를 일정 초반에 넣겠습니다', refined: '처음부터 로그를 남기는 구조를 만들겠습니다. 이번에는 문제가 생긴 뒤에야 타임스탬프를 넣어서 원인을 찾는 데 2주가 걸렸습니다. 부하 테스트도 일정 초반에 넣겠습니다.', followUps: [
+    { text: '그 2주 동안 팀 일정은 어떻게 조정했나요?', rationale: '협업과 일정 관리 경험 확인' },
+  ] },
+  { speaker: 'INTERVIEWER', raw: '네 시간이 다 돼서요 마지막으로 하고 싶은 말씀 있으면 해 주세요', refined: '시간이 다 됐습니다. 마지막으로 하고 싶은 말씀이 있으면 해 주세요.' },
+  { speaker: 'CANDIDATE', raw: '오늘 질문을 받으면서 제가 측정 방법을 먼저 설명하지 않는다는 걸 알았습니다 입사하게 되면 근거를 먼저 말하는 습관을 들이겠습니다 감사합니다', refined: '오늘 질문을 받으면서 제가 측정 방법을 먼저 설명하지 않는다는 것을 알았습니다. 입사하게 되면 근거를 먼저 말하는 습관을 들이겠습니다. 감사합니다.' },
+  { speaker: 'INTERVIEWER', raw: '네 수고하셨습니다 결과는 채용 담당자가 따로 안내드릴 거예요', refined: '수고하셨습니다. 결과는 채용 담당자가 따로 안내드리겠습니다.' },
 ]
 
 export const sampleTranscript = liveScript.map((u, i) => ({

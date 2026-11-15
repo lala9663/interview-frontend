@@ -33,7 +33,8 @@ watch(() => ui.recruitmentId, () => {
 usePolling(load, { interval: 8000 })
 
 const byTime = (a, b) => new Date(a.scheduledAt || 0) - new Date(b.scheduledAt || 0)
-const todays = computed(() => items.value.filter((i) => isToday(i.scheduledAt)).sort(byTime))
+// 진행 중인 면접은 예정일이 오늘이 아니어도(자정을 넘겼거나 날짜를 옮겨 시작한 경우) 오늘 일정에 보인다
+const todays = computed(() => items.value.filter((i) => isToday(i.scheduledAt) || i.status === 'IN_PROGRESS').sort(byTime))
 const upcoming = computed(() => items.value.filter((i) => i.scheduledAt && !isToday(i.scheduledAt) && new Date(i.scheduledAt) > new Date() && i.status === 'SCHEDULED').sort(byTime).slice(0, 6))
 const toEvaluate = computed(() => items.value.filter((i) => i.status === 'EVALUATING'))
 const next = computed(() => todays.value.find((i) => i.status === 'IN_PROGRESS') || todays.value.find((i) => i.status === 'SCHEDULED') || null)

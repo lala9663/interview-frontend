@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { useAuth } from '@/stores/auth.js'
 
 // 화면을 더할 때: features/<기능>/<Page>.vue를 만들고 여기에 한 줄, components/AppShell.vue의 nav에 한 줄.
@@ -20,7 +20,10 @@ const routes = [
   { path: '/:rest(.*)*', redirect: '/' },
 ]
 
-export const router = createRouter({ history: createWebHistory(), routes })
+// 파일로 여는 시연용 빌드(VITE_ROUTER=hash)는 서버가 없으므로 주소의 # 뒤로 화면을 구분한다
+const history = import.meta.env.VITE_ROUTER === 'hash' ? createWebHashHistory() : createWebHistory()
+
+export const router = createRouter({ history, routes })
 
 router.beforeEach((to) => {
   const auth = useAuth()

@@ -2,9 +2,53 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-export default defineConfig({
-  plugins: [vue()],
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  server: { port: 5173, strictPort: true },
-  test: { environment: 'jsdom', globals: true, include: ['src/**/*.test.js'] },
+// 시연용 빌드(npm run build:demo): 스크립트·스타일·글꼴을 HTML 한 파일에 넣는다.
+// 서버 없이 파일을 더블클릭해 열 수 있어야 하므로 바깥 파일을 하나도 참조하지 않는다.
+function singleFile(fileName) {
+  return {
+    name: 'single-file',
+    enforce: 'post',
+    generateBundle(_, bundle) {
+      const html = Object.values(bundle).find((f) => f.fileName.endsWith('.html'))
+      if (!html) return
+      let out = String(html.source).replace(/<link rel="icon"[^>]*>\s*/, '')
+      for (const f of Object.values(bundle)) {
+        if (f === html) continue
+        const name = f.fileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        if (f.type === 'chunk') {
+          const tag = new RegExp(`<script[^>]*src="[^"]*${name}"[^>]*></script>`)
+          // 화면을 한 덩어리로 합치면 Vite가 미리 불러올 목록의 자리 표시를 못 채운다. 목록이 없다고 알려 준다.
+          const code = f.code.replace(/"__VITE_PRELOAD__"/g, 'void 0').replace(/<\/script/g, '<\\/script')
+          out = out.replace(tag, () => `<script type="module">\n${code}\n</script>`)
+        } else if (f.fileName.endsWith('.css')) {
+          const tag = new RegExp(`<link[^>]*href="[^"]*${name}"[^>]*>`)
+          out = out.replace(tag, () => `<style>\n${f.source}\n</style>`)
+        }
+        delete bundle[f.fileName]
+      }
+      html.source = out
+      html.fileName = fileName
+    },
+  }
+}
+
+export default defineConfig(({ mode }) => {
+  const demo = mode === 'demo'
+  return {
+    plugins: [vue(), demo && singleFile('interview-mockup.html')],
+    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+    server: { port: 5173, strictPort: true },
+    test: { environment: 'jsdom', globals: true, include: ['src/**/*.test.js'] },
+    ...(demo && {
+      base: './',
+      publicDir: false,
+      build: {
+        outDir: 'dist-demo',
+        emptyOutDir: false,
+        cssCodeSplit: false,
+        assetsInlineLimit: 100 * 1024 * 1024,
+        rollupOptions: { output: { inlineDynamicImports: true } },
+      },
+    }),
+  }
 })

@@ -19,6 +19,19 @@ npm ci
 | `npm run dev` | mock | 없음 | http://localhost:5173 |
 | `npm run dev:api` | api | 백엔드 8080, Agent 8000 | http://localhost:5173 |
 | `npm run build` → `dist/` | api | 웹 서버(같은 도메인에서 `/api/v1`을 백엔드로 넘김) | 배포 주소 |
+| `npm run build:demo` → `dist-demo/interview-mockup.html` | mock | 없음(서버도 필요 없다) | 파일을 더블클릭 |
+
+### 시연용 HTML (`build:demo`)
+
+화면 전체를 HTML 한 파일로 만든다. 스크립트·스타일·글꼴이 모두 들어 있어 서버 없이 브라우저로 바로 열리고, 메일이나 메신저로 보낼 수 있다(약 4MB).
+
+- 데이터는 전부 가상이고 `src/mocks/`가 답한다. 새로 고침하면 처음 상태로 돌아간다.
+- 오늘 일정은 여는 시각을 기준으로 잡힌다. 언제 열어도 "곧 시작할 면접"과 "진행 중인 방"이 있다.
+- 면접 방은 마이크를 요청하지 않고 대본을 흘려보낸다(`.env.demo`의 `VITE_MOCK_MIC=off`). 실제 마이크 동작은 이 파일로 확인할 수 없다.
+- 면접 방 위쪽에 설명 띠가 나온다(`VITE_DEMO_GUIDE=on`, `features/room/DemoGuide.vue`). 지금 시스템이 하는 일(음성을 글로 → 문장 다듬기·화자 구분 → 준비한 질문 찾기 → 꼬리질문 만들기)을 보여 주고, 멈춤·2배·처음부터 버튼이 있다. "처음부터"는 화면을 새로 읽어 모의 데이터를 처음 상태로 되돌린다.
+- 대본은 `src/mocks/data.js`의 `liveScript`다(문장 18개, 1배속으로 약 2분 30초). 대본의 `q`는 준비된 질문의 순서와 맞춰야 자동 체크가 된다.
+- 주소는 `#` 뒤로 화면을 구분한다(`VITE_ROUTER=hash`). 서버가 없어서다.
+- 설정은 `vite.config.js`의 `demo` 부분과 `.env.demo`에 있다.
 
 세 레포를 함께 띄우는 순서: 백엔드(`./gradlew bootRun`) → Agent(`uvicorn app.main:app --port 8000`) → 프론트(`npm run dev:api`). 자세한 것은 각 레포의 `docs/setup.md`.
 

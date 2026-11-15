@@ -11,25 +11,23 @@ export function adminRoutes({ db, cand, interviewView }) {
     const now = Date.now()
     const today = new Date().toDateString()
     const rows = ofRecruitment(params).filter((i) => (i.scheduledAt && new Date(i.scheduledAt).toDateString() === today) || i.status === 'IN_PROGRESS')
-    const items = rows.map((i, n) => {
+    const items = rows.map((i) => {
       const v = interviewView(i)
       const sched = i.scheduledAt ? new Date(i.scheduledAt).getTime() : now
       const due = sched < now
-      // 예정 시각이 지난 '예정' 면접 일부는 진행 중인 것처럼 보여 준다(모의)
-      if (v.status === 'SCHEDULED' && due && n % 3 !== 0) v.status = 'IN_PROGRESS'
+      // 상태는 데이터 그대로 쓴다(다른 화면의 숫자와 맞아야 한다). 여기서는 시각과 연결 상태만 계산한다.
       const live = v.status === 'IN_PROGRESS'
       const ended = v.status === 'EVALUATING' || v.status === 'DONE'
-      const startedAt = live || ended ? new Date(sched + (n % 4 === 1 ? 7 : 1) * 60000).toISOString() : null
-      // 하루 중 언제 열어도 그럴듯하게: 진행 시간은 예정 길이 안팎으로 둔다(모의)
-      const elapsed = live ? (n % 4 === 0 ? v.durationMinutes + 8 : 6 + ((n * 7) % Math.max(1, v.durationMinutes - 8))) : ended ? v.durationMinutes - 2 : 0
-      const trouble = live && n % 5 === 2 // 마이크가 끊긴 방
-      const backlog = live && n % 7 === 3 // 전사가 밀린 방
+      const startedAt = i._startedAt || (live || ended ? new Date(sched + 60000).toISOString() : null)
+      const elapsed = live ? Math.max(0, Math.round((now - new Date(startedAt).getTime()) / 60000)) : ended ? v.durationMinutes - 2 : 0
+      const trouble = live && i._trouble === 'NO_AUDIO' // 마이크가 끊긴 방
+      const backlog = live && i._trouble === 'BACKLOG' // 전사가 밀린 방
       const r = {
         interview: v,
         startedAt,
         endedAt: ended ? new Date(sched + v.durationMinutes * 60000).toISOString() : null,
         elapsedMinutes: elapsed,
-        lateMinutes: v.status === 'SCHEDULED' && due ? Math.min(12, Math.round((now - sched) / 60000)) : startedAt ? Math.round((new Date(startedAt).getTime() - sched) / 60000) : 0,
+        lateMinutes: v.status === 'SCHEDULED' && due ? Math.round((now - sched) / 60000) : startedAt ? Math.max(0, Math.round((new Date(startedAt).getTime() - sched) / 60000)) : 0,
         overtimeMinutes: live ? Math.max(0, elapsed - v.durationMinutes) : 0,
         utteranceCount: live ? (trouble ? 0 : elapsed * 3) : ended ? 60 : 0,
         lastUtteranceAt: live ? new Date(now - (trouble ? 6 : 0) * 60000).toISOString() : null,
