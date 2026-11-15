@@ -19,7 +19,7 @@ npm ci
 | `npm run dev` | mock | 없음 | http://localhost:5173 |
 | `npm run dev:api` | api | 백엔드 8080, Agent 8000 | http://localhost:5173 |
 | `npm run build` → `dist/` | api | 웹 서버(같은 도메인에서 `/api/v1`을 백엔드로 넘김) | 배포 주소 |
-| `npm run build:demo` → `dist-demo/interview-mockup-<주차>.html` | mock | 없음(서버도 필요 없다) | 파일을 더블클릭 |
+| `npm run build:demo` → `dist-demo/interview-mockup-<주차>.html` (주차마다 하나) | mock | 없음(서버도 필요 없다) | 파일을 더블클릭 |
 
 ### 시연용 HTML (`build:demo`)
 
@@ -35,12 +35,28 @@ npm ci
 
 ### 주차별 목업
 
-매주 회의에서 지난주 대비 달라진 것을 보여 주려고 목업을 주차마다 따로 남긴다.
+매주 회의에서 무엇이 더해지고 나아졌는지 보여 주려고, 목업을 주차마다 한 파일씩 만든다. `npm run build:demo` 한 번에 모든 주차의 파일이 나온다.
 
-- 파일 이름에 주차가 붙는다: `dist-demo/interview-mockup-2026-w47.html`. 주차 이름은 `main`에 붙이는 태그와 같다. 지난 주의 파일은 빌드해도 지워지지 않는다. 같은 내용이 `interview-mockup.html`(가장 최근 것)로도 나온다.
-- 주차와 변경 요약은 `src/mocks/changelog.js`에 있다. 목업의 로그인 화면과 위쪽 줄에 "N주 차 · 달라진 것" 버튼이 나오고(`components/DemoChangelog.vue`), 누르면 주차별 변경 요약이 뜬다. 시연용 빌드에만 나온다.
-- 매주 하는 일: `main`으로 올린 뒤 `changelog.js` 맨 위에 그 주 항목을 하나 더하고 `npm run build:demo`. 항목은 실제로 `main`에 들어간 것만 적는다. 지난 주 항목은 고치지 않는다.
-- 주차 이름이 붙은 파일(`dist-demo/interview-mockup-<주차>.html`)은 git에 올린다. 빌드 없이 받아서 바로 열 수 있게 하고, 지난 주에 보여 준 것을 남기기 위해서다. 이름이 고정된 `interview-mockup.html`은 같은 내용의 사본이라 올리지 않는다(`.gitignore`). 한 주에 약 4MB씩 는다.
+| 파일 | 회의 | 그 주차에 새로 보이는 것 |
+| --- | --- | --- |
+| `interview-mockup-2026-w47.html` | 11/18 (3주 차) | 신입 흐름 전체: 오늘, 면접자 목록·상세, 엑셀 올리기와 자동 매칭, 면접 전, 면접 중(전사, 화자 구분, 준비한 질문 자동 인식, 꼬리질문 제안), 면접 후(초안 보고서, 내 평가) |
+| `interview-mockup-2026-w48.html` | 11/25 (4주 차) | 말로 물은 꼬리질문 자동 채택, 보정본 보고서, 물은 질문과 은행에 담기, 질문 은행, 면접 종류 탭과 담당 직무 미리 선택, 진행 현황 |
+| `interview-mockup-2026-w49.html` | 12/2 (5주 차) | 경력 채용 탭(차수, 상세 보고서), AI 참고 평가 |
+| `interview-mockup-2026-w50.html` | 12/9 (6주 차) | 관리 > 운영 현황, AI 품질, 면접관 편차 |
+
+- **코드는 한 벌이다.** 기능은 모두 만들어져 있고, 주차별 목업에서만 그 주차에 보여 줄 기능을 켠다. 개발 서버(`npm run dev`)와 실제 배포 빌드에서는 주차가 없으므로 모든 기능이 켜진다.
+- **어느 주차에 무엇을 켜는지**는 `src/lib/features.js`의 표에 있다(기능 이름 → 처음 보이는 과제 주차). 화면·메뉴·라우트(`meta.feature`)·모의 서버가 `has('이름')`으로 확인한다. 가려진 화면의 주소로 직접 들어가면 오늘(또는 관리 > 등록·매칭)으로 돌아간다.
+- **주차 목록과 변경 요약**은 `src/mocks/changelog.js`에 있다. 목업의 로그인 화면과 위쪽 줄에 "N주 차 · 달라진 것" 버튼이 나오고(`components/DemoChangelog.vue`), 누르면 그 주차까지의 변경 요약이 뜬다. 이 버튼은 목업에만 나온다.
+- 주차 이름은 `main`에 붙이는 태그와 같다(예: `2026-w47`). 가장 최근 주차는 `interview-mockup.html`로도 나온다.
+- 한 주차만 다시 만들려면 `npm run build:demo -- 2026-w48`. 빌드 스크립트는 `scripts/build-mockups.mjs`다.
+- 주차 이름이 붙은 파일은 git에 올린다(빌드 없이 받아서 바로 열 수 있게). `interview-mockup.html`은 사본이라 올리지 않는다(`.gitignore`). 한 파일이 약 4MB다.
+
+바꿀 때:
+
+- **주차에 넣을 기능을 옮긴다**: `features.js`의 번호와 `changelog.js`의 항목을 같이 고치고 다시 빌드한다.
+- **새 기능을 만들었다**: 어느 주차에 보여 줄지 정해 `features.js`에 이름을 더하고 화면에서 `has()`로 감싼다. `changelog.js`의 그 주차에 한 줄 적는다. 적지 않으면 처음(3주 차) 목업부터 보인다.
+- **주차를 더한다**(7주 차 이후): `changelog.js` 맨 위에 항목을 더한다.
+- 이미 회의에서 보여 준 주차의 파일과 변경 요약은 바꾸지 않는다. 현업 의견으로 고친 것은 다음 주차의 "개선"·"수정"으로 적는다.
 
 세 레포를 함께 띄우는 순서: 백엔드(`./gradlew bootRun`) → Agent(`uvicorn app.main:app --port 8000`) → 프론트(`npm run dev:api`). 자세한 것은 각 레포의 `docs/setup.md`.
 

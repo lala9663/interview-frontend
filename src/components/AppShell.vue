@@ -6,6 +6,7 @@ import { CalendarClock, Users, GitBranch, Library, LayoutDashboard, Moon, Sun, L
 import { useAuth } from '@/stores/auth.js'
 import { useUi } from '@/stores/ui.js'
 import { isMock } from '@/api/http.js'
+import { has } from '@/lib/features.js'
 import { TRACK } from '@/lib/labels.js'
 import { initials } from '@/lib/format.js'
 
@@ -22,11 +23,12 @@ const router = useRouter()
 const allNav = [
   { to: { name: 'today' }, label: '오늘', icon: CalendarClock, match: ['today', 'prep', 'review'] },
   { to: { name: 'candidates' }, label: '면접자', icon: Users, match: ['candidates', 'candidate'] },
-  { to: { name: 'pipeline' }, label: '진행 현황', icon: GitBranch, match: ['pipeline'] },
-  { to: { name: 'bank' }, label: '질문 은행', icon: Library, match: ['bank'] },
-  { to: { name: 'admin' }, label: '관리', icon: LayoutDashboard, match: ['admin', 'admin-setup', 'admin-quality', 'admin-interviewers'], admin: true },
+  { to: { name: 'pipeline' }, label: '진행 현황', icon: GitBranch, match: ['pipeline'], feature: 'pipeline' },
+  { to: { name: 'bank' }, label: '질문 은행', icon: Library, match: ['bank'], feature: 'questionBank' },
+  { to: { name: has('operations') ? 'admin' : 'admin-setup' }, label: '관리', icon: LayoutDashboard, match: ['admin', 'admin-setup', 'admin-quality', 'admin-interviewers'], admin: true },
 ]
-const nav = computed(() => allNav.filter((item) => !item.admin || auth.isAdmin))
+// feature 가 있는 메뉴는 주차별 목업에서 그 주차부터 보인다(lib/features.js)
+const nav = computed(() => allNav.filter((item) => (!item.admin || auth.isAdmin) && (!item.feature || has(item.feature))))
 const active = (item) => item.match.includes(route.name)
 // 신입/경력 탭은 목록 화면에서만 보인다. 면접 한 건의 화면(면접 전·후, 면접자 상세)에서는 숨긴다.
 const showTrackTabs = computed(() => ['today', 'candidates', 'pipeline'].includes(route.name) || String(route.name).startsWith('admin'))

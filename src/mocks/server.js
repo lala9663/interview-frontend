@@ -3,6 +3,7 @@
 import { ApiError } from '@/api/http.js'
 import * as D from './data.js'
 import { adminRoutes } from './admin.js'
+import { has } from '@/lib/features.js'
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 const clone = (x) => JSON.parse(JSON.stringify(x))
@@ -268,7 +269,8 @@ const routes = [
     startJob('REPORT', it.id, 4000, () => {
       db.reports.set(it.id, [{ ...D.reportFor(c, it, 'LIVE'), generatedAt: new Date().toISOString() }])
       Object.assign(it, { reportStatus: 'SUCCEEDED', reportBasis: 'LIVE' })
-      setTimeout(() => {
+      // 보정본은 주차별 목업에서 그 주차부터 나온다(lib/features.js)
+      if (has('refinedReport')) setTimeout(() => {
         db.reports.get(it.id).push({ ...D.reportFor(c, it, 'REFINED'), generatedAt: new Date().toISOString() })
         it.reportBasis = 'REFINED'
       }, 12000)
@@ -308,7 +310,7 @@ const routes = [
     const it = intv(id)
     if (it.reportStatus === 'RUNNING') return { status: 'RUNNING', content: null }
     if (it.reportStatus !== 'SUCCEEDED') return { status: null, content: null }
-    if (!db.reports.has(it.id)) db.reports.set(it.id, [D.reportFor(cand(it.candidateId), it, 'LIVE'), ...(it.reportBasis === 'REFINED' ? [D.reportFor(cand(it.candidateId), it, 'REFINED')] : [])])
+    if (!db.reports.has(it.id)) db.reports.set(it.id, [D.reportFor(cand(it.candidateId), it, 'LIVE'), ...(it.reportBasis === 'REFINED' && has('refinedReport') ? [D.reportFor(cand(it.candidateId), it, 'REFINED')] : [])])
     const list = db.reports.get(it.id)
     return list[list.length - 1]
   }],

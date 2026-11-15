@@ -9,6 +9,7 @@ import { candidateApi, recruitmentApi } from '@/api/index.js'
 import { useAuth } from '@/stores/auth.js'
 import { useUi } from '@/stores/ui.js'
 import { INTERVIEW_STATUS, INTERVIEW_TYPE, JOB_STATUS, labelOf } from '@/lib/labels.js'
+import { has } from '@/lib/features.js'
 
 const auth = useAuth()
 const ui = useUi()
@@ -28,7 +29,7 @@ const q = ref('')
 // "직무 전체"로 되돌린다(2026-11-15 결정).
 function defaultJobCode() {
   const codes = auth.user?.jobCodes || []
-  return !auth.isAdmin && codes.length === 1 ? codes[0] : ''
+  return has('candidateFilters') && !auth.isAdmin && codes.length === 1 ? codes[0] : ''
 }
 const jobCode = ref(defaultJobCode())
 const status = ref('')
@@ -106,7 +107,7 @@ function go(p) {
           <option value="">상태 전체</option>
           <option v-for="s in statuses" :key="s" :value="s">{{ labelOf(INTERVIEW_STATUS, s) }}</option>
         </select>
-        <div class="ml-1 flex items-center border-l border-line pl-2" role="tablist" aria-label="면접 종류">
+        <div v-if="has('candidateFilters')" class="ml-1 flex items-center border-l border-line pl-2" role="tablist" aria-label="면접 종류">
           <button class="tab h-9" :class="{ 'tab-on': !type }" role="tab" :aria-selected="!type" @click="type = ''">전체</button>
           <button v-for="t in types" :key="t" class="tab h-9" :class="{ 'tab-on': type === t }" role="tab" :aria-selected="type === t" @click="type = t">{{ labelOf(INTERVIEW_TYPE, t) }}</button>
         </div>

@@ -17,6 +17,7 @@ DSInterview(면접 지원 서비스)의 화면(면접관·관리자용). 세 레
 | 화면만 띄우기(백엔드 없이, 모의 데이터) | `npm run dev` |
 | 로컬 백엔드·Agent에 연결 | `npm run dev:api` (`.env.development`) |
 | 린트 · 테스트 · 빌드 한 번에 | `npm run check` |
+| 주차별 목업(HTML) 만들기 | `npm run build:demo` (`docs/setup.md`의 "주차별 목업") |
 
 작업을 끝내기 전에 `npm run check`를 통과시킨다.
 
@@ -28,7 +29,7 @@ src/
   api/index.js       엔드포인트 함수(경로 문자열은 여기에만)
   mocks/             모의 백엔드(server.js), 모의 Agent 소켓(socket.js), 가상 데이터(data.js), 주차별 목업의 변경 요약(changelog.js)
   stores/            pinia: auth(로그인), ui(테마·신입/경력 탭과 채용 선택·토스트)
-  lib/               labels.js(열거형→한국어·색), format.js(시각), poll.js(작업 대기)
+  lib/               labels.js(열거형→한국어·색), format.js(시각), poll.js(작업 대기), features.js(주차별 목업에서 켤 기능)
   components/        여러 화면이 같이 쓰는 것(AppShell, InterviewHeader, PhaseSteps, StageTrack, Modal …)
   features/<기능>/   화면. 한 기능의 파일은 그 폴더 안에만 둔다
     auth today candidates interview(면접 전) room(면접 중) review(면접 후) pipeline bank admin(관리자 전용)

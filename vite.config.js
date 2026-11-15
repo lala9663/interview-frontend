@@ -1,11 +1,12 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { CURRENT } from './src/mocks/changelog.js'
+import { CHANGELOG, weekOf } from './src/mocks/changelog.js'
 
 // 시연용 빌드(npm run build:demo): 스크립트·스타일·글꼴을 HTML 한 파일에 넣는다.
-// 파일은 주차 이름(interview-mockup-<week>.html)으로 남고, 주차는 src/mocks/changelog.js 의 맨 위 항목에서 온다.
-// 지난 주의 파일은 지우지 않는다(emptyOutDir: false). 같은 내용이 interview-mockup.html 로도 나온다.
+// 파일은 주차 이름(interview-mockup-<week>.html)으로 남는다. 주차는 환경변수 VITE_DEMO_WEEK 로 받고
+// (scripts/build-mockups.mjs 가 주차마다 넣는다), 없으면 src/mocks/changelog.js 의 가장 최근 주차다.
+// 다른 주차의 파일은 지우지 않는다(emptyOutDir: false). 가장 최근 주차는 interview-mockup.html 로도 나온다.
 // 서버 없이 파일을 더블클릭해 열 수 있어야 하므로 바깥 파일을 하나도 참조하지 않는다.
 function singleFile(fileName, alsoAs) {
   return {
@@ -39,8 +40,10 @@ function singleFile(fileName, alsoAs) {
 
 export default defineConfig(({ mode }) => {
   const demo = mode === 'demo'
+  const week = weekOf(process.env.VITE_DEMO_WEEK).week
+  const latest = week === CHANGELOG[0].week
   return {
-    plugins: [vue(), demo && singleFile(`interview-mockup-${CURRENT.week}.html`, 'interview-mockup.html')],
+    plugins: [vue(), demo && singleFile(`interview-mockup-${week}.html`, latest ? 'interview-mockup.html' : null)],
     resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     server: { port: 5173, strictPort: true },
     test: { environment: 'jsdom', globals: true, include: ['src/**/*.test.js'] },

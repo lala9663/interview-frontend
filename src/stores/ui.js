@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { recruitmentApi } from '@/api/index.js'
+import { has } from '@/lib/features.js'
 
 const read = (k, d) => {
   try {
@@ -34,7 +35,8 @@ export const useUi = defineStore('ui', {
     toasts: [],
   }),
   getters: {
-    tracks: (s) => ['NEW_GRAD', 'EXPERIENCED'].filter((t) => s.recruitments.some((r) => r.track === t)),
+    // 주차별 목업에서는 경력 채용 탭이 그 주차부터 보인다(lib/features.js)
+    tracks: (s) => ['NEW_GRAD', 'EXPERIENCED'].filter((t) => s.recruitments.some((r) => r.track === t) && (t !== 'EXPERIENCED' || has('experienced'))),
     trackRecruitments: (s) => s.recruitments.filter((r) => r.track === s.track),
     recruitment() {
       const list = this.trackRecruitments

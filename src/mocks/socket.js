@@ -5,6 +5,7 @@
 import { liveScript } from './data.js'
 import { mockStore } from './server.js'
 import { demo, resetDemo } from './demo.js'
+import { has } from '@/lib/features.js'
 
 const TICK = 50
 
@@ -122,7 +123,7 @@ export class MockRoomSocket {
         this.stage(line.followUps ? 'FOLLOWUP' : 'IDLE', ['LISTEN', 'REFINE', 'MATCH'])
       }, t)
     }
-    if (line.fu) {
+    if (line.fu && has('spokenFollowUp')) {
       // 제안된 꼬리질문을 말로 물었다 → 누르지 않아도 채택된다
       t += 700
       this.later(() => this.emit({ type: 'followup.matched', seq, id: line.fu, similarity: 0.81 }), t)

@@ -4,13 +4,18 @@
 import { ref } from 'vue'
 import { History } from 'lucide-vue-next'
 import Modal from '@/components/Modal.vue'
-import { CHANGELOG, CURRENT } from '@/mocks/changelog.js'
+import { CHANGELOG } from '@/mocks/changelog.js'
+import { shownUpTo } from '@/lib/features.js'
+
+// 이 목업의 주차까지만 보인다. 맨 위가 지금 보는 주차.
+const weeks = shownUpTo(CHANGELOG)
+const CURRENT = weeks[0]
 
 const open = ref(false)
 const KIND = {
-  new: { label: '새로 생김', tone: 'brand' },
-  improved: { label: '나아짐', tone: 'ok' },
-  fixed: { label: '고침', tone: 'warn' },
+  new: { label: '추가', tone: 'brand' },
+  improved: { label: '개선', tone: 'ok' },
+  fixed: { label: '수정', tone: 'warn' },
 }
 const md = (iso) => {
   const [, m, d] = iso.split('-')
@@ -25,7 +30,7 @@ const md = (iso) => {
 
   <Modal v-if="open" title="주차별로 달라진 것" wide @close="open = false">
     <div class="space-y-7">
-      <section v-for="(w, i) in CHANGELOG" :key="w.week">
+      <section v-for="(w, i) in weeks" :key="w.week">
         <header class="mb-2 flex flex-wrap items-baseline gap-x-2.5 border-b border-line pb-2">
           <h3 class="h-sec">{{ w.label }}</h3>
           <span class="text-[0.84rem] tabular-nums text-sub">{{ md(w.meeting) }} 회의 · {{ w.week }}</span>
@@ -34,7 +39,7 @@ const md = (iso) => {
         <p class="mb-2.5 text-[0.93rem] leading-relaxed text-sub">{{ w.summary }}</p>
         <ul class="divide-y divide-line">
           <li v-for="(it, n) in w.items" :key="n" class="flex items-start gap-3 py-2">
-            <span class="badge mt-0.5 w-[76px] shrink-0 justify-center" :class="`tone-${KIND[it.kind]?.tone || 'neutral'}`">{{ KIND[it.kind]?.label || it.kind }}</span>
+            <span class="badge mt-0.5 w-[56px] shrink-0 justify-center" :class="`tone-${KIND[it.kind]?.tone || 'neutral'}`">{{ KIND[it.kind]?.label || it.kind }}</span>
             <span class="w-20 shrink-0 pt-0.5 text-[0.86rem] font-semibold text-sub">{{ it.area }}</span>
             <span class="min-w-0 flex-1 leading-relaxed">{{ it.text }}</span>
           </li>

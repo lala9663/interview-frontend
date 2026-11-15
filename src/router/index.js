@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { useAuth } from '@/stores/auth.js'
+import { has } from '@/lib/features.js'
 
 // 화면을 더할 때: features/<기능>/<Page>.vue를 만들고 여기에 한 줄, components/AppShell.vue의 nav에 한 줄.
 const routes = [
@@ -10,13 +11,13 @@ const routes = [
   { path: '/interviews/:id', name: 'prep', component: () => import('@/features/interview/PrepPage.vue'), props: true },
   { path: '/interviews/:id/room', name: 'room', component: () => import('@/features/room/RoomPage.vue'), props: true, meta: { bare: true } },
   { path: '/interviews/:id/review', name: 'review', component: () => import('@/features/review/ReviewPage.vue'), props: true },
-  { path: '/pipeline', name: 'pipeline', component: () => import('@/features/pipeline/PipelinePage.vue') },
+  { path: '/pipeline', name: 'pipeline', component: () => import('@/features/pipeline/PipelinePage.vue'), meta: { feature: 'pipeline' } },
   // 관리(관리자 전용). 하위 탭은 features/admin/AdminTabs.vue의 표와 맞춘다.
-  { path: '/admin', name: 'admin', component: () => import('@/features/admin/OperationsPage.vue'), meta: { admin: true } },
+  { path: '/admin', name: 'admin', component: () => import('@/features/admin/OperationsPage.vue'), meta: { admin: true, feature: 'operations' } },
   { path: '/admin/setup', name: 'admin-setup', component: () => import('@/features/admin/SetupPage.vue'), meta: { admin: true } },
-  { path: '/admin/quality', name: 'admin-quality', component: () => import('@/features/admin/QualityPage.vue'), meta: { admin: true } },
-  { path: '/admin/interviewers', name: 'admin-interviewers', component: () => import('@/features/admin/InterviewersPage.vue'), meta: { admin: true } },
-  { path: '/question-bank', name: 'bank', component: () => import('@/features/bank/QuestionBankPage.vue') },
+  { path: '/admin/quality', name: 'admin-quality', component: () => import('@/features/admin/QualityPage.vue'), meta: { admin: true, feature: 'quality' } },
+  { path: '/admin/interviewers', name: 'admin-interviewers', component: () => import('@/features/admin/InterviewersPage.vue'), meta: { admin: true, feature: 'interviewerStats' } },
+  { path: '/question-bank', name: 'bank', component: () => import('@/features/bank/QuestionBankPage.vue'), meta: { feature: 'questionBank' } },
   { path: '/:rest(.*)*', redirect: '/' },
 ]
 
@@ -31,5 +32,7 @@ router.beforeEach((to) => {
   if (to.name === 'login' && auth.isLoggedIn) return { name: 'today' }
   // 관리자 전용 화면. 실제 권한 검사는 백엔드가 한다.
   if (to.meta.admin && !auth.isAdmin) return { name: 'today' }
+  // 주차별 목업에서 아직 보여 주지 않는 화면(lib/features.js). 그 밖의 빌드에서는 항상 통과한다.
+  if (to.meta.feature && !has(to.meta.feature)) return { name: to.meta.admin ? 'admin-setup' : 'today' }
   return true
 })

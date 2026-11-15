@@ -14,6 +14,7 @@ import { useUi } from '@/stores/ui.js'
 import { usePolling } from '@/lib/poll.js'
 import { REPORT_BASIS, labelOf, toneOf } from '@/lib/labels.js'
 import { ago } from '@/lib/format.js'
+import { has } from '@/lib/features.js'
 
 const props = defineProps({ id: { type: [String, Number], required: true } })
 const ui = useUi()
@@ -27,14 +28,14 @@ const questions = ref([])
 const tab = ref('report')
 const tabs = [
   { key: 'report', label: '보고서', icon: FileText },
-  { key: 'ai', label: 'AI 참고 평가', icon: Bot },
+  { key: 'ai', label: 'AI 참고 평가', icon: Bot, feature: 'aiEvaluation' },
   { key: 'talk', label: '대화 기록', icon: MessagesSquare },
-  { key: 'asked', label: '물은 질문', icon: ListChecks },
-]
+  { key: 'asked', label: '물은 질문', icon: ListChecks, feature: 'questionBank' },
+].filter((t) => !t.feature || has(t.feature)) // feature: 주차별 목업에서 그 주차부터 보인다
 
 const reportReady = computed(() => report.value?.status === 'SUCCEEDED' && report.value.content)
 const reportRunning = computed(() => ['PENDING', 'RUNNING'].includes(report.value?.status) || (interview.value?.roomStatus === 'ENDED' && !report.value?.status))
-const waitingRefined = computed(() => reportReady.value && report.value.basis === 'LIVE')
+const waitingRefined = computed(() => has('refinedReport') && reportReady.value && report.value.basis === 'LIVE')
 const aiReady = computed(() => ai.value?.status === 'SUCCEEDED')
 
 async function loadAi() {
@@ -152,7 +153,7 @@ const evidence = (seqs) => utterances.value.filter((u) => seqs?.includes(u.seq))
         </div>
       </section>
 
-      <MyEvaluationPanel class="lg:sticky lg:top-0" :interview-id="id" :criteria="criteria" :ai-scores="ai?.scores || []" @submitted="load" />
+      <MyEvaluationPanel class="lg:sticky lg:top-0" :interview-id="id" :criteria="criteria" :ai-scores="has('aiEvaluation') ? ai?.scores || [] : []" @submitted="load" />
     </div>
   </div>
   <div v-else class="space-y-3"><div v-for="n in 3" :key="n" class="h-24 animate-pulse rounded-lg bg-sunken" /></div>

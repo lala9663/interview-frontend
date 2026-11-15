@@ -2,14 +2,15 @@
 // 관리 메뉴의 하위 탭. 탭을 더하면 여기와 router/index.js, AppShell.vue의 match에 한 줄씩.
 import { useRoute } from 'vue-router'
 import { Activity, FileSpreadsheet, Gauge, Scale } from 'lucide-vue-next'
+import { has } from '@/lib/features.js'
 
 const route = useRoute()
 const tabs = [
-  { name: 'admin', label: '운영 현황', icon: Activity },
+  { name: 'admin', label: '운영 현황', icon: Activity, feature: 'operations' },
   { name: 'admin-setup', label: '등록 · 매칭', icon: FileSpreadsheet },
-  { name: 'admin-quality', label: 'AI 품질', icon: Gauge },
-  { name: 'admin-interviewers', label: '면접관 편차', icon: Scale },
-]
+  { name: 'admin-quality', label: 'AI 품질', icon: Gauge, feature: 'quality' },
+  { name: 'admin-interviewers', label: '면접관 편차', icon: Scale, feature: 'interviewerStats' },
+].filter((t) => !t.feature || has(t.feature))
 </script>
 
 <template>
