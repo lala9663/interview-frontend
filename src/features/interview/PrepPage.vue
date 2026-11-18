@@ -3,14 +3,16 @@
 // 자기소개를 시켜 놓고 이력서를 읽던 시간을 대신한다.
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { CheckCircle2, EyeOff, HelpCircle, Mic, Plus, RefreshCw, Sparkles, Trash2 } from 'lucide-vue-next'
+import { CheckCircle2, CornerDownRight, EyeOff, HelpCircle, ListTree, Mic, Plus, RefreshCw, Sparkles, Trash2 } from 'lucide-vue-next'
 import InterviewHeader from '@/components/InterviewHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import PersonaPicker from './PersonaPicker.vue'
 import { interviewApi } from '@/api/index.js'
 import { useUi } from '@/stores/ui.js'
 import { usePolling } from '@/lib/poll.js'
 import { BLIND_FIELD, QUESTION_SOURCE, labelOf, toneOf } from '@/lib/labels.js'
 import { ago } from '@/lib/format.js'
+import { has, liveLocked } from '@/lib/features.js'
 
 const props = defineProps({ id: { type: [String, Number], required: true } })
 const ui = useUi()
@@ -22,9 +24,15 @@ const questions = ref([])
 const newQuestion = ref('')
 const sourceFilter = ref('')
 
+// 11/18 회의 반영: 질문을 하나씩 빼거나 더하지 않고 전체를 다시 만든다. 신입은 질문마다 예상 꼬리질문이 가지로 붙는다.
+const regenerateOnly = has('feedback1118')
+const locked = computed(() => liveLocked(interview.value?.track))
 const generating = computed(() => ['PENDING', 'RUNNING'].includes(briefing.value?.status))
-const visible = computed(() => questions.value.filter((q) => !q.hidden && (!sourceFilter.value || q.source === sourceFilter.value)))
-const sources = computed(() => [...new Set(questions.value.filter((q) => !q.hidden).map((q) => q.source))])
+// 가지(예상 꼬리질문)는 부모 질문 아래에 보여 주므로 목록과 출처 탭에서는 뺀다
+const roots = computed(() => questions.value.filter((q) => !q.hidden && !q.parentQuestionId))
+const visible = computed(() => roots.value.filter((q) => !sourceFilter.value || q.source === sourceFilter.value))
+const sources = computed(() => [...new Set(roots.value.map((q) => q.source))])
+const childrenOf = (q) => questions.value.filter((x) => !x.hidden && x.parentQuestionId === q.id)
 const canEnter = computed(() => ['SCHEDULED', 'IN_PROGRESS'].includes(interview.value?.status))
 
 async function load() {
@@ -67,6 +75,8 @@ async function hide(q) {
 <template>
   <div v-if="interview" class="space-y-4">
     <InterviewHeader :interview="interview" current="prep" />
+
+    <PersonaPicker v-if="has('persona') && interview.persona" :interview="interview" @changed="load().catch((e) => ui.fail(e))" />
 
     <div class="grid gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <!-- 사전 리포트 -->
@@ -121,7 +131,8 @@ async function hide(q) {
       <section class="flex flex-col">
         <header class="flex h-11 items-center justify-between border-b border-line">
           <h2 class="h-sec">준비된 질문 <span class="ml-1 text-[0.9rem] font-semibold text-faint">{{ visible.length }}</span></h2>
-          <div class="flex self-end">
+          <div class="flex items-center self-end">
+            <button v-if="regenerateOnly" class="btn btn-sm btn-ghost mr-1" :disabled="generating" title="사전 리포트와 질문을 처음부터 다시 만듭니다" @click="generate"><RefreshCw :size="14" :class="{ 'animate-spin': generating }" />질문 전체 다시 만들기</button>
             <button class="tab h-9 px-2.5 text-[0.86rem]" :class="{ 'tab-on': sourceFilter === '' }" @click="sourceFilter = ''">전체</button>
             <button v-for="s in sources" :key="s" class="tab h-9 px-2.5 text-[0.86rem]" :class="{ 'tab-on': sourceFilter === s }" @click="sourceFilter = s">{{ labelOf(QUESTION_SOURCE, s) }}</button>
           </div>
@@ -135,12 +146,19 @@ async function hide(q) {
                 <span class="badge h-5 px-2 text-[0.74rem]" :class="`tone-${toneOf(QUESTION_SOURCE, q.source)}`">{{ labelOf(QUESTION_SOURCE, q.source) }}</span>
                 {{ q.category }}<template v-if="q.intent"> · {{ q.intent }}</template>
               </p>
+              <ul v-if="childrenOf(q).length" class="mt-2 space-y-1 border-l-2 border-line pl-3" aria-label="예상 꼬리질문">
+                <li v-for="c in childrenOf(q)" :key="c.id" class="flex items-start gap-1.5 text-[0.9rem] leading-snug text-sub"><CornerDownRight :size="13" class="mt-1 shrink-0 text-faint" />{{ c.text }}</li>
+              </ul>
             </div>
-            <button class="btn btn-ghost btn-icon btn-sm opacity-0 group-hover:opacity-100 focus-visible:opacity-100" aria-label="이 질문 빼기" title="이 질문 빼기" @click="hide(q)"><Trash2 :size="15" /></button>
+            <button v-if="!regenerateOnly" class="btn btn-ghost btn-icon btn-sm opacity-0 group-hover:opacity-100 focus-visible:opacity-100" aria-label="이 질문 빼기" title="이 질문 빼기" @click="hide(q)"><Trash2 :size="15" /></button>
           </li>
           <li v-if="!visible.length" class="px-4 py-8 text-center text-[0.9rem] text-sub">사전 리포트를 만들면 질문도 함께 준비됩니다.</li>
         </ol>
-        <form class="flex gap-2 border-t border-line pt-3" @submit.prevent="addQuestion">
+        <p v-if="regenerateOnly" class="border-t border-line pt-3 text-[0.82rem] leading-relaxed text-faint">
+          {{ locked ? '질문마다 예상 꼬리질문을 미리 만들어 두었습니다. 면접 중에는 녹음과 꼬리질문 제안을 쓰지 않습니다.' : '면접 중에는 답변에 맞춰 꼬리질문을 그 질문 아래에 제안합니다.' }}
+          질문이 맞지 않으면 전체를 다시 만들어 주세요. 도움이 됐는지는 면접이 끝난 화면에서 남깁니다.
+        </p>
+        <form v-else class="flex gap-2 border-t border-line pt-3" @submit.prevent="addQuestion">
           <input v-model="newQuestion" class="input" placeholder="직접 물어볼 질문 추가" aria-label="질문 추가" />
           <button class="btn" :disabled="!newQuestion.trim()"><Plus :size="16" />추가</button>
         </form>
@@ -148,7 +166,7 @@ async function hide(q) {
     </div>
 
     <div v-if="canEnter" class="sticky bottom-4 flex justify-end">
-      <button class="btn btn-primary btn-lg shadow-pop" @click="router.push({ name: 'room', params: { id: interview.id } })"><Mic :size="18" />면접 방 입장</button>
+      <button class="btn btn-primary btn-lg shadow-pop" @click="router.push({ name: 'room', params: { id: interview.id } })"><ListTree v-if="locked" :size="18" /><Mic v-else :size="18" />{{ locked ? '질문 화면 열기' : '면접 방 입장' }}</button>
     </div>
   </div>
   <div v-else class="space-y-3"><div v-for="n in 3" :key="n" class="h-24 animate-pulse rounded-lg bg-sunken" /></div>

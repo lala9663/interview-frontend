@@ -1,4 +1,80 @@
-import { applyEvent, createRoomState, groupTurns, lastSeq, statusNotice } from './room-state.js'
+import { applyEvent, createRoomState, flattenBranches, groupTurns, lastSeq, questionTree, statusNotice } from './room-state.js'
+
+describe('questionTree', () => {
+  const q = (id, extra = {}) => ({ id, text: `q${id}`, source: 'RESUME', asked: false, askedAtSeq: null, hidden: false, parentQuestionId: null, ...extra })
+
+  it('제안된 꼬리질문은 그 답변 전에 물은 질문 아래에 붙는다', () => {
+    const questions = [q(1, { asked: true, askedAtSeq: 1 }), q(2, { asked: true, askedAtSeq: 4 }), q(3)]
+    const followUps = [
+      { basedOnSeq: 5, items: [{ id: 'f-5-1', text: 'b' }] },
+      { basedOnSeq: 3, items: [{ id: 'f-3-1', text: 'a' }] },
+    ]
+    const t = questionTree(questions, followUps)
+    expect(t.nodes[0].children.map((c) => c.f.text)).toEqual(['a'])
+    expect(t.nodes[1].children.map((c) => c.f.text)).toEqual(['b'])
+    expect(t.nodes[2].children).toEqual([])
+    expect(t.currentId).toBe(2)
+    expect(t.loose).toEqual([])
+  })
+
+  it('채택한 꼬리질문은 제안 대신 질문으로 보인다', () => {
+    const questions = [q(1, { asked: true, askedAtSeq: 1 }), q(9, { source: 'FOLLOW_UP', text: 'a', asked: true })]
+    const t = questionTree(questions, [{ basedOnSeq: 3, items: [{ id: 'f-3-1', text: 'a', used: true, spoken: true }, { id: 'f-3-2', text: 'c' }] }])
+    expect(t.nodes).toHaveLength(1)
+    expect(t.nodes[0].children.map((c) => [c.kind, c.q?.id ?? c.f.id])).toEqual([['question', 9], ['suggestion', 'f-3-2']])
+    expect(t.nodes[0].children[0].spoken).toBe(true)
+  })
+
+  it('채택한 꼬리질문에 대한 답에서 나온 제안은 그 꼬리질문 아래에 한 단계 더 들어간다', () => {
+    const questions = [q(1, { asked: true, askedAtSeq: 1 }), q(2, { asked: true, askedAtSeq: 4 }), q(9, { source: 'FOLLOW_UP', text: 'a', asked: true, askedAtSeq: 6 })]
+    const t = questionTree(questions, [
+      { basedOnSeq: 7, items: [{ id: 'f-7-1', text: 'deeper' }] },
+      { basedOnSeq: 3, items: [{ id: 'f-3-1', text: 'a', used: true }] },
+    ])
+    expect(t.nodes[0].children.map((c) => c.q.text)).toEqual(['a'])
+    expect(t.nodes[0].children[0].children.map((c) => c.f.text)).toEqual(['deeper'])
+    expect(t.nodes[1].children).toEqual([])
+    // 방금 물은 것이 가지여도 "지금 질문"은 그 가지가 달린 줄기다
+    expect(t.currentId).toBe(1)
+    expect(flattenBranches(t.nodes[0].children).map((c) => [c.depth, c.q?.text ?? c.f.text])).toEqual([[0, 'a'], [1, 'deeper']])
+  })
+
+  it('같은 질문을 나중에 다시 물어도 앞서 붙은 꼬리질문의 자리는 그대로다', () => {
+    // 질문 1을 처음(1번 발화)에 묻고, 질문 2를 물은 뒤, 9번 발화에서 질문 1을 다시 물었다 → askedAtSeq 는 9로 바뀐다
+    const questions = [q(1, { asked: true, askedAtSeq: 9 }), q(2, { asked: true, askedAtSeq: 4 })]
+    const utterances = [{ seq: 1, matchedQuestionId: 1 }, { seq: 4, matchedQuestionId: 2 }, { seq: 9, matchedQuestionId: 1 }]
+    const followUps = [
+      { basedOnSeq: 10, items: [{ id: 'f-10-1', text: 'c' }] },
+      { basedOnSeq: 5, items: [{ id: 'f-5-1', text: 'b' }] },
+      { basedOnSeq: 2, items: [{ id: 'f-2-1', text: 'a' }] },
+    ]
+    const t = questionTree(questions, followUps, utterances)
+    expect(t.nodes[0].children.map((c) => c.f.text)).toEqual(['a', 'c'])
+    expect(t.nodes[1].children.map((c) => c.f.text)).toEqual(['b'])
+    expect(t.loose).toEqual([])
+    expect(t.currentId).toBe(1)
+  })
+
+  it('순서를 바꿔 물어도 방금 물은 질문 아래에 붙는다', () => {
+    const questions = [q(1), q(2), q(3, { asked: true, askedAtSeq: 1 })]
+    const t = questionTree(questions, [{ basedOnSeq: 2, items: [{ id: 'f-2-1', text: 'a' }] }], [{ seq: 1, matchedQuestionId: 3 }])
+    expect(t.nodes.map((n) => n.children.length)).toEqual([0, 0, 1])
+    expect(t.currentId).toBe(3)
+  })
+
+  it('면접 전에 만든 예상 꼬리질문은 부모 질문 아래에 있다', () => {
+    const questions = [q(1), q(2), q(11, { source: 'FOLLOW_UP', parentQuestionId: 1 }), q(12, { source: 'FOLLOW_UP', parentQuestionId: 2 })]
+    const t = questionTree(questions, [])
+    expect(t.nodes.map((n) => n.children.map((c) => c.q.id))).toEqual([[11], [12]])
+    expect(t.currentId).toBeNull()
+  })
+
+  it('물은 질문이 아직 없으면 제안은 따로 모은다', () => {
+    const t = questionTree([q(1)], [{ basedOnSeq: 2, items: [{ id: 'f-2-1', text: 'a' }] }])
+    expect(t.nodes[0].children).toEqual([])
+    expect(t.loose.map((c) => c.f.id)).toEqual(['f-2-1'])
+  })
+})
 
 const final = (seq, speaker, extra = {}) => ({ type: 'transcript.final', seq, speaker, speakerMethod: 'LLM', rawText: `raw${seq}`, refinedText: `t${seq}`, startMs: 0, endMs: 1, ...extra })
 

@@ -2,13 +2,14 @@
 // 면접자: 위쪽 탭(신입/경력)에서 고른 채용의 면접자 목록. 등록(엑셀 업로드)과 면접관 매칭은 "관리" 메뉴(관리자)에 있다.
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, ChevronRight, Search, Users } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Search, Users, Upload } from 'lucide-vue-next'
 import StatusBadge from '@/components/StatusBadge.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import UploadDialog from '@/components/UploadDialog.vue'
 import { candidateApi, recruitmentApi } from '@/api/index.js'
 import { useAuth } from '@/stores/auth.js'
 import { useUi } from '@/stores/ui.js'
-import { INTERVIEW_STATUS, INTERVIEW_TYPE, JOB_STATUS, labelOf } from '@/lib/labels.js'
+import { APPLICANT_TYPE, INTERVIEW_STATUS, INTERVIEW_TYPE, JOB_STATUS, labelOf } from '@/lib/labels.js'
 import { has } from '@/lib/features.js'
 
 const auth = useAuth()
@@ -33,11 +34,15 @@ function defaultJobCode() {
 }
 const jobCode = ref(defaultJobCode())
 const status = ref('')
+// 면접자 유형으로 거르기(11/18 회의 반영의 화면 시안. API 명세에 아직 없는 값이라 모의 서버만 거른다)
+const applicantType = ref('')
+const showUpload = ref(false)
+const applicantTypes = computed(() => (ui.track === 'EXPERIENCED' ? ['CAREER', 'PHD', 'CAREER_MASTER'] : ['OPEN', 'SCHOLARSHIP', 'INTERN']))
 const pages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 const statuses = ['SCHEDULED', 'IN_PROGRESS', 'EVALUATING', 'DONE', 'WAITING']
 // 면접 종류 탭: 신입은 PT·인성, 경력은 포트폴리오·직무·인성. "지금 차수" 면접의 종류로 거른다.
 const type = ref('')
-const types = computed(() => (ui.track === 'EXPERIENCED' ? ['PORTFOLIO', 'JOB', 'PERSONALITY'] : ['PT', 'PERSONALITY']))
+const types = computed(() => (has('feedback1118') ? ['JOB', 'PERSONALITY'] : ui.track === 'EXPERIENCED' ? ['PORTFOLIO', 'JOB', 'PERSONALITY'] : ['PT', 'PERSONALITY']))
 
 async function load() {
   const id = ui.recruitmentId
@@ -45,7 +50,7 @@ async function load() {
   loading.value = true
   try {
     const [list, jobList] = await Promise.all([
-      candidateApi.list(id, { q: q.value, jobCode: jobCode.value, status: status.value, type: type.value, page: page.value, size: PAGE_SIZE }),
+      candidateApi.list(id, { q: q.value, jobCode: jobCode.value, status: status.value, type: type.value, ...(applicantType.value ? { applicantType: applicantType.value } : {}), page: page.value, size: PAGE_SIZE }),
       recruitmentApi.jobs(id),
     ])
     if (id !== ui.recruitmentId) return
@@ -66,12 +71,12 @@ const first = () => {
 }
 onMounted(load)
 watch(() => ui.recruitmentId, () => {
-  q.value = status.value = type.value = ''
+  q.value = status.value = type.value = applicantType.value = ''
   jobCode.value = defaultJobCode()
   rows.value = []
   first()
 })
-watch([jobCode, status, type], first)
+watch([jobCode, status, type, applicantType], first)
 let timer = null
 watch(q, () => {
   clearTimeout(timer)
@@ -90,7 +95,12 @@ function go(p) {
         <h1 class="h-page">면접자</h1>
         <p class="text-[0.9rem] text-sub">{{ ui.recruitment?.title }} · {{ total }}명</p>
       </div>
-      <RouterLink v-if="auth.isAdmin" :to="{ name: 'admin-setup' }" class="btn">면접자 등록 · 면접관 매칭은 관리에서</RouterLink>
+      <!-- 화면 시안(feedback1118): 신입은 여기서 바로 엑셀을 올린다. 경력은 채용 시스템에서 읽어 오므로 관리 > 등록으로 보낸다 -->
+      <template v-if="auth.isAdmin && has('feedback1118')">
+        <button v-if="ui.track !== 'EXPERIENCED'" class="btn btn-primary" @click="showUpload = true"><Upload :size="16" />면접자 엑셀 업로드</button>
+        <RouterLink v-else :to="{ name: 'admin-setup' }" class="btn">채용 시스템에서 불러오기는 관리 &gt; 등록에서</RouterLink>
+      </template>
+      <RouterLink v-else-if="auth.isAdmin" :to="{ name: 'admin-setup' }" class="btn">면접자 등록 · 면접관 매칭은 관리에서</RouterLink>
     </div>
 
     <section class="card">
@@ -102,6 +112,10 @@ function go(p) {
         <select v-model="jobCode" class="input w-auto" aria-label="지원 직무">
           <option value="">직무 전체</option>
           <option v-for="j in jobs" :key="j.id" :value="j.jobCode">{{ j.title }}</option>
+        </select>
+        <select v-if="has('feedback1118')" v-model="applicantType" class="input w-auto" aria-label="면접자 유형">
+          <option value="">유형 전체</option>
+          <option v-for="t in applicantTypes" :key="t" :value="t">{{ labelOf(APPLICANT_TYPE, t) }}</option>
         </select>
         <select v-model="status" class="input w-auto" aria-label="현재 단계 상태">
           <option value="">상태 전체</option>
@@ -126,7 +140,7 @@ function go(p) {
         <tbody>
           <tr v-for="r in rows" :key="r.id" class="row-line cursor-pointer" tabindex="0" @click="router.push({ name: 'candidate', params: { id: r.id } })" @keydown.enter="router.push({ name: 'candidate', params: { id: r.id } })">
             <td class="td"><span class="font-semibold">{{ r.name }}</span><span class="ml-2 text-[0.82rem] text-faint">{{ r.applicantNo }}</span></td>
-            <td class="td text-sub">{{ r.jobTitle }}</td>
+            <td class="td text-sub">{{ r.jobTitle }}<span v-if="r.applicantType" class="badge tone-neutral ml-2">{{ labelOf(APPLICANT_TYPE, r.applicantType) }}</span></td>
             <td class="td">
               <span v-if="r.currentStage" class="flex items-center gap-2">
                 <span class="text-[0.9rem]">{{ labelOf(INTERVIEW_TYPE, r.currentStage.type) }}</span>
@@ -153,5 +167,7 @@ function go(p) {
         </div>
       </footer>
     </section>
+
+    <UploadDialog v-if="showUpload" :recruitment-id="ui.recruitmentId" @close="showUpload = false" @uploaded="first" />
   </div>
 </template>

@@ -6,6 +6,16 @@ export const TRACK = {
   EXPERIENCED: { label: '경력', tone: 'ok' },
 }
 
+// 면접자 유형(11/18 회의). API 명세에 아직 없는 값이라 모의 데이터에만 있다. 정해지면 명세의 이름으로 맞춘다.
+export const APPLICANT_TYPE = {
+  SCHOLARSHIP: { label: '장학생' },
+  OPEN: { label: '공채' },
+  INTERN: { label: '인턴 전환' },
+  CAREER: { label: '일반 경력' },
+  PHD: { label: '박사' },
+  CAREER_MASTER: { label: '경력 석사' },
+}
+
 export const INTERVIEW_TYPE = {
   PT: { label: 'PT 면접' },
   PERSONALITY: { label: '인성 면접' },
@@ -60,6 +70,13 @@ export const QUESTION_SOURCE = {
 export const REPORT_BASIS = {
   LIVE: { label: '실시간 전사 기반 초안', tone: 'warn' },
   REFINED: { label: '보정본', tone: 'ok' },
+}
+
+// 시스템 상태(화면 시안, API 명세에 아직 없다)
+export const SYSTEM_STATUS = {
+  OK: { label: '정상', tone: 'ok' },
+  DEGRADED: { label: '지연', tone: 'warn' },
+  DOWN: { label: '멈춤', tone: 'bad' },
 }
 
 export const BLIND_FIELD = {

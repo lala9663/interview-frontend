@@ -113,6 +113,8 @@ export function useRoom(interviewId) {
   async function toggleAsked(q) {
     const asked = !q.asked
     q.asked = asked
+    // 손으로 표시한 질문도 "언제 물었는지"를 남긴다: 그 뒤에 나온 꼬리질문이 이 질문 아래에 붙는다(room-state.js questionTree)
+    q.askedAtSeq = asked ? lastSeq(state) : null
     if (asked) send({ type: 'question.asked', questionId: q.id })
     await interviewApi.patchQuestion(q.id, { asked })
   }

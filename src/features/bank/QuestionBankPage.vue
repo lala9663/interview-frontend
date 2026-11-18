@@ -11,7 +11,8 @@ import { INTERVIEW_TYPE, labelOf } from '@/lib/labels.js'
 import { has } from '@/lib/features.js'
 
 // 경력용 면접 종류는 주차별 목업에서 경력 채용이 보이는 주차부터 고를 수 있다(lib/features.js)
-const typeChoices = Object.keys(INTERVIEW_TYPE).filter((k) => has('experienced') || !['JOB', 'PORTFOLIO'].includes(k))
+// 신입도 경력도 직무·인성 면접만 본다(2026-11-18 확인): 11/18 회의 반영이 켜지면 포트폴리오와 PT를 고르는 곳에서 뺀다
+const typeChoices = Object.keys(INTERVIEW_TYPE).filter((k) => (has('experienced') || !['JOB', 'PORTFOLIO'].includes(k)) && !(has('feedback1118') && ['PORTFOLIO', 'PT'].includes(k)))
 
 const auth = useAuth()
 const ui = useUi()
@@ -19,7 +20,7 @@ const rows = ref([])
 const q = ref('')
 const jobCode = ref('')
 const adding = ref(false)
-const form = ref({ jobCode: 'SW', interviewType: 'PT', category: '', text: '' })
+const form = ref({ jobCode: 'SW', interviewType: has('feedback1118') ? 'JOB' : 'PT', category: '', text: '' })
 const jobCodes = ref([])
 
 async function load() {

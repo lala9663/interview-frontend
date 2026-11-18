@@ -106,3 +106,89 @@ export function groupTurns(utterances) {
   }
   return turns
 }
+
+/**
+ * 질문과 꼬리질문을 나무 모양으로 묶는다(면접 방 가운데 칸). 꼬리질문은 그것이 나온 질문 아래에 가지로 붙는다.
+ *
+ * - 줄기: 부모가 없는 질문(준비된 질문, 직접 추가한 질문).
+ * - 가지 ①: parentQuestionId 가 다른 질문을 가리키는 질문(면접 전에 만든 예상 꼬리질문).
+ * - 가지 ②: 면접 중 제안된 꼬리질문. 제안의 근거가 된 발화(basedOnSeq) 바로 전에 물은 질문 아래에 붙인다.
+ *   그 질문이 채택한 꼬리질문이면 그 아래에 한 단계 더 들어간다(꼬리의 꼬리).
+ *   채택해서 질문 목록에 올라간 것(같은 글의 FOLLOW_UP 질문)은 제안 대신 그 질문을 보여 준다.
+ * - 어디에도 붙지 못한 것은 loose 로 돌려준다.
+ *
+ * "언제 어느 질문을 물었는지"는 세 군데에서 모은다: 발화에 남은 질문 일치 기록(utterances 의 matchedQuestionId),
+ * 질문의 askedAtSeq(손으로 표시한 것 포함), 말로 물어 채택된 제안의 spokenAtSeq.
+ * 발화 기록을 같이 보기 때문에 같은 질문을 나중에 다시 물어도 앞서 붙은 가지의 자리는 바뀌지 않는다.
+ *
+ * 가지는 { key, kind: 'question'|'suggestion', q?, f?, spoken?, children } 이고 children 에 다시 가지가 들어간다.
+ * @returns {{ nodes: Array<{ q, children: Array }>, loose: Array, currentId: number|null }} currentId 는 방금 물은 질문이 있는 줄기
+ */
+export function questionTree(questions, followUps, utterances = []) {
+  const visible = questions.filter((q) => !q.hidden)
+  const byId = new Map() // 질문 id → { node, rootId }
+  const nodes = visible
+    .filter((q) => !q.parentQuestionId && q.source !== 'FOLLOW_UP')
+    .map((q) => {
+      const node = { q, children: [] }
+      byId.set(q.id, { node, rootId: q.id })
+      return node
+    })
+  const loose = []
+
+  const attach = (parent, child) => {
+    const node = { key: `q${child.q.id}`, kind: 'question', children: [], ...child }
+    parent.node.children.push(node)
+    byId.set(child.q.id, { node, rootId: parent.rootId })
+  }
+  // 면접 전에 만든 가지(부모가 먼저 자리를 잡아야 하므로 붙일 것이 없어질 때까지 돈다)
+  let waiting = visible.filter((q) => q.parentQuestionId)
+  for (let moved = true; moved && waiting.length; ) {
+    moved = false
+    waiting = waiting.filter((q) => {
+      const parent = byId.get(q.parentQuestionId)
+      if (!parent) return true
+      attach(parent, { q })
+      moved = true
+      return false
+    })
+  }
+
+  // 언제(seq) 어느 질문을 물었는지
+  const asks = []
+  utterances.forEach((u) => u.matchedQuestionId && asks.push({ seq: u.seq, id: u.matchedQuestionId }))
+  visible.forEach((q) => q.askedAtSeq != null && asks.push({ seq: q.askedAtSeq, id: q.id }))
+  const adopted = visible.filter((q) => q.source === 'FOLLOW_UP' && !byId.has(q.id))
+  followUps.forEach((g) => g.items.forEach((f) => {
+    const q = f.spokenAtSeq != null && adopted.find((x) => x.text === f.text)
+    if (q) asks.push({ seq: f.spokenAtSeq, id: q.id })
+  }))
+  // 그 발화 전에 가장 늦게 물은 질문(이미 나무에 자리 잡은 것 가운데)
+  const askedBefore = (seq) => {
+    let best = null
+    for (const a of asks) if (a.seq <= seq && byId.has(a.id) && (!best || a.seq >= best.seq)) best = a
+    return best ? byId.get(best.id) : null
+  }
+
+  // 오래된 제안부터 붙여야 화면에서 시간 순서가 되고, 채택한 꼬리질문이 그 뒤의 제안보다 먼저 자리를 잡는다(followUps 는 최신이 앞)
+  ;[...followUps].reverse().forEach((g) => {
+    const parent = askedBefore(g.basedOnSeq)
+    g.items.forEach((f) => {
+      const q = adopted.find((x) => x.text === f.text && !byId.has(x.id))
+      if (q && parent) attach(parent, { q, spoken: !!f.spoken })
+      else if (q) {
+        loose.push({ key: `q${q.id}`, kind: 'question', q, spoken: !!f.spoken, children: [] })
+        byId.set(q.id, { node: loose[loose.length - 1], rootId: null })
+      } else (parent ? parent.node.children : loose).push({ key: `f${f.id}`, kind: 'suggestion', f, children: [] })
+    })
+  })
+  adopted.filter((q) => !byId.has(q.id)).forEach((q) => loose.push({ key: `q${q.id}`, kind: 'question', q, children: [] }))
+
+  const last = asks.reduce((best, a) => (byId.get(a.id)?.rootId != null && (!best || a.seq >= best.seq) ? a : best), null)
+  return { nodes, loose, currentId: last ? byId.get(last.id).rootId : null }
+}
+
+/** 가지를 화면에 그릴 순서대로 한 줄로 편다. depth 는 들여 쓸 단계(0부터) */
+export function flattenBranches(children, depth = 0) {
+  return children.flatMap((c) => [{ ...c, depth }, ...flattenBranches(c.children || [], depth + 1)])
+}

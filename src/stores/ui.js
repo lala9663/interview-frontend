@@ -29,14 +29,15 @@ export const useUi = defineStore('ui', {
     theme: read('iv.theme', 'light'),
     recruitments: [],
     // 위쪽 탭: 신입(NEW_GRAD) / 경력(EXPERIENCED). 모든 목록 화면이 이 값을 따른다.
-    track: read('iv.track', 'NEW_GRAD'),
+    // 11/18 회의에서 경력 채용을 먼저 하기로 해, 처음 여는 탭은 경력이다
+    track: read('iv.track', has('feedback1118') ? 'EXPERIENCED' : 'NEW_GRAD'),
     // 트랙마다 마지막으로 보던 채용 { NEW_GRAD: 1, EXPERIENCED: 2 }
     recruitmentByTrack: readJson('iv.recruitmentByTrack', {}),
     toasts: [],
   }),
   getters: {
     // 주차별 목업에서는 경력 채용 탭이 그 주차부터 보인다(lib/features.js)
-    tracks: (s) => ['NEW_GRAD', 'EXPERIENCED'].filter((t) => s.recruitments.some((r) => r.track === t) && (t !== 'EXPERIENCED' || has('experienced'))),
+    tracks: (s) => (has('feedback1118') ? ['EXPERIENCED', 'NEW_GRAD'] : ['NEW_GRAD', 'EXPERIENCED']).filter((t) => s.recruitments.some((r) => r.track === t) && (t !== 'EXPERIENCED' || has('experienced'))),
     trackRecruitments: (s) => s.recruitments.filter((r) => r.track === s.track),
     recruitment() {
       const list = this.trackRecruitments

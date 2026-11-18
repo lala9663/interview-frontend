@@ -3,6 +3,7 @@
 import { computed, defineAsyncComponent, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CalendarClock, Users, GitBranch, Library, LayoutDashboard, Moon, Sun, LogOut, FlaskConical } from 'lucide-vue-next'
+import SystemStatusChip from './SystemStatusChip.vue'
 import { useAuth } from '@/stores/auth.js'
 import { useUi } from '@/stores/ui.js'
 import { isMock } from '@/api/http.js'
@@ -25,7 +26,7 @@ const allNav = [
   { to: { name: 'candidates' }, label: '면접자', icon: Users, match: ['candidates', 'candidate'] },
   { to: { name: 'pipeline' }, label: '진행 현황', icon: GitBranch, match: ['pipeline'], feature: 'pipeline' },
   { to: { name: 'bank' }, label: '질문 은행', icon: Library, match: ['bank'], feature: 'questionBank' },
-  { to: { name: has('operations') ? 'admin' : 'admin-setup' }, label: '관리', icon: LayoutDashboard, match: ['admin', 'admin-setup', 'admin-quality', 'admin-interviewers'], admin: true },
+  { to: { name: has('operations') ? 'admin' : 'admin-setup' }, label: '관리', icon: LayoutDashboard, match: ['admin', 'admin-setup', 'admin-quality', 'admin-interviewers', 'admin-calendar', 'admin-personas', 'admin-models', 'admin-system'], admin: true },
 ]
 // feature 가 있는 메뉴는 주차별 목업에서 그 주차부터 보인다(lib/features.js)
 const nav = computed(() => allNav.filter((item) => (!item.admin || auth.isAdmin) && (!item.feature || has(item.feature))))
@@ -100,6 +101,7 @@ async function logout() {
         </template>
         <slot name="title" />
         <div class="ml-auto flex items-center gap-3">
+          <SystemStatusChip v-if="has('systemStatus')" />
           <component :is="DemoChangelog" v-if="DemoChangelog" />
           <span v-if="isMock" class="badge tone-warn" title="백엔드 없이 모의 데이터로 동작 중"><FlaskConical :size="13" />모의 데이터</span>
           <div class="flex items-center gap-2">

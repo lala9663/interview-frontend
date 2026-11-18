@@ -1,11 +1,14 @@
 <script setup>
 // 내 평가: 공식 평가는 채용 시스템에 입력한다. 여기는 정리하고 복사해 가는 곳이다.
 import { computed, nextTick, ref, watch } from 'vue'
-import { ClipboardCopy, Info, Send } from 'lucide-vue-next'
+import { ClipboardCopy, Info, Send, Sparkles } from 'lucide-vue-next'
 import { interviewApi } from '@/api/index.js'
 import { useUi } from '@/stores/ui.js'
 
-const props = defineProps({ interviewId: { type: [String, Number], required: true }, criteria: { type: Array, required: true }, aiScores: { type: Array, default: () => [] } })
+const props = defineProps({ interviewId: { type: [String, Number], required: true }, criteria: { type: Array, required: true }, aiScores: { type: Array, default: () => [] },
+  // 평가 의견 초안(점수 없이 글만). 비어 있으면 버튼이 나오지 않는다
+  opinionDraft: { type: String, default: '' },
+})
 const emit = defineEmits(['submitted'])
 const ui = useUi()
 
@@ -72,6 +75,13 @@ async function submit() {
   }
 }
 
+/** 의견 초안을 메모 아래에 붙인다(이미 적은 메모는 지우지 않는다) */
+function insertDraft() {
+  if (form.value.memo.includes(props.opinionDraft)) return ui.toast('이미 넣은 초안입니다.')
+  form.value.memo = [form.value.memo.trim(), props.opinionDraft].filter(Boolean).join('\n\n')
+  ui.toast('의견 초안을 넣었습니다. 읽고 고쳐 주세요.', 'ok')
+}
+
 async function copy() {
   const lines = [
     `등급: ${form.value.grade || '-'}`,
@@ -134,8 +144,12 @@ async function copy() {
       </div>
 
       <div>
-        <p class="label mb-1.5">메모 · 종합 의견</p>
-        <textarea v-model="form.memo" rows="6" class="input" placeholder="면접 중 적은 메모가 이어집니다." />
+        <div class="mb-1.5 flex items-center justify-between">
+          <p class="label">메모 · 종합 의견</p>
+          <button v-if="opinionDraft && !form.submitted" class="btn btn-sm" title="보고서 내용으로 의견 초안을 메모 아래에 붙입니다. 점수는 넣지 않습니다" @click="insertDraft"><Sparkles :size="14" />의견 초안 넣기</button>
+        </div>
+        <textarea v-model="form.memo" :rows="opinionDraft ? 9 : 6" class="input" placeholder="면접 중 적은 메모가 이어집니다." />
+        <p v-if="opinionDraft" class="mt-1 text-[0.78rem] leading-snug text-faint">초안은 AI가 쓴 참고용 글이고 점수는 들어 있지 않습니다. 전사 공통 평가 양식을 받으면 그 항목에 맞춰 드립니다.</p>
       </div>
     </div>
 

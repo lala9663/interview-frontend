@@ -1,18 +1,21 @@
 <script setup>
 // 관리 > 등록·매칭(관리자 전용): 면접자 엑셀 업로드와 이력, 면접관 자동 매칭.
+// 11/18 회의 반영(feedback1118): 자동 매칭을 뺀다. 신입은 매칭 파일(면접위원·면접자·일정·장소)을 올리고, 경력은 채용 시스템에서 읽어 온다.
+// 두 통로 모두 화면 시안이다: 파일 형식과 채용 시스템의 테이블을 받기 전이라 모의 서버의 배정 기능을 대신 부른다.
 // 위쪽 탭(신입/경력)에서 고른 채용에 대해 동작한다.
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { AlertTriangle, CheckCircle2, FileSpreadsheet, Radio, Upload, UserCheck, Wand2 } from 'lucide-vue-next'
+import { AlertTriangle, CheckCircle2, DatabaseZap, FileSpreadsheet, Radio, Upload, UserCheck, Wand2 } from 'lucide-vue-next'
 import Modal from '@/components/Modal.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
-import UploadDialog from './UploadDialog.vue'
+import UploadDialog from '@/components/UploadDialog.vue'
 import AdminTabs from './AdminTabs.vue'
 import { candidateApi, fetchAll, miscApi, recruitmentApi } from '@/api/index.js'
 import { useUi } from '@/stores/ui.js'
 import { usePolling } from '@/lib/poll.js'
 import { hm, mdhm } from '@/lib/format.js'
 import { INTERVIEW_STATUS, INTERVIEW_TYPE, labelOf } from '@/lib/labels.js'
+import { has } from '@/lib/features.js'
 
 const ui = useUi()
 const router = useRouter()
@@ -25,6 +28,9 @@ const showUpload = ref(false)
 const matching = ref(false)
 const matchResult = ref(null)
 const errorBatch = ref(null)
+const noAutoMatch = has('feedback1118')
+const experienced = computed(() => ui.track === 'EXPERIENCED')
+const syncedAt = ref(null) // 채용 시스템에서 마지막으로 읽어 온 때(이 화면에서만 기억)
 
 async function load() {
   const id = ui.recruitmentId
@@ -62,7 +68,8 @@ async function autoAssign() {
   matching.value = true
   try {
     matchResult.value = await candidateApi.autoAssign(ui.recruitmentId)
-    ui.toast('면접관을 배정했습니다.', 'ok')
+    syncedAt.value = new Date().toISOString()
+    ui.toast(!noAutoMatch ? '면접관을 배정했습니다.' : experienced.value ? '채용 시스템에서 일정과 면접위원을 읽어 왔습니다.' : '매칭 파일을 반영했습니다.', 'ok')
     await load()
   } catch (e) {
     ui.fail(e)
@@ -87,7 +94,7 @@ async function openErrors(batch) {
         <h1 class="h-page">관리</h1>
         <AdminTabs />
       </div>
-      <button class="btn btn-primary" @click="showUpload = true"><Upload :size="16" />면접자 엑셀 업로드</button>
+      <button v-if="!(noAutoMatch && experienced)" class="btn btn-primary" @click="showUpload = true"><Upload :size="16" />면접자 엑셀 업로드</button>
     </div>
 
     <div class="flex flex-wrap gap-y-3">
@@ -144,8 +151,34 @@ async function openErrors(batch) {
       </div>
 
       <div class="space-y-4">
+        <!-- 11/18 회의 반영: 자동 매칭 대신 받아 오기 -->
+        <section v-if="noAutoMatch" class="card">
+          <header class="border-b border-line px-4 py-3">
+            <h2 class="h-sec flex items-center gap-2">
+              <template v-if="experienced"><DatabaseZap :size="17" class="text-brand" />채용 시스템에서 불러오기</template>
+              <template v-else><UserCheck :size="17" class="text-brand" />매칭 파일 올리기</template>
+            </h2>
+          </header>
+          <div class="space-y-3 p-4">
+            <p class="flex items-center gap-2 text-[0.95rem]">
+              <template v-if="unassigned"><AlertTriangle :size="17" class="text-warn" />면접관이 없는 면접자 <b class="text-warn">{{ unassigned }}명</b></template>
+              <template v-else><CheckCircle2 :size="17" class="text-ok" />모든 면접자에게 면접관이 배정돼 있습니다</template>
+            </p>
+            <p v-if="experienced" class="text-[0.86rem] leading-relaxed text-sub">글로벌 채용 시스템에서 면접 일정과 면접위원을 읽어 옵니다(읽기 전용). 매칭은 부서에서 하고, 여기서는 바꾸지 않습니다.</p>
+            <p v-else class="text-[0.86rem] leading-relaxed text-sub">면접위원 · 면접자 · 일정 · 장소가 든 매칭 파일을 올리면 면접과 면접관이 한 번에 등록됩니다. 매칭은 이 화면에서 하지 않습니다.</p>
+            <button class="btn w-full" :disabled="matching" @click="autoAssign">
+              <template v-if="experienced"><DatabaseZap :size="16" />{{ matching ? '읽어 오는 중…' : '지금 불러오기' }}</template>
+              <template v-else><Upload :size="16" />{{ matching ? '반영하는 중…' : '매칭 파일 올리기' }}</template>
+            </button>
+            <div v-if="matchResult" class="space-y-1 rounded-md bg-sunken p-3 text-[0.88rem]">
+              <p>면접관이 정해진 면접 <b>{{ matchResult.assignedInterviewCount ?? 0 }}</b>건<template v-if="syncedAt"> · {{ mdhm(syncedAt) }}</template></p>
+            </div>
+            <p class="text-[0.78rem] leading-snug text-faint">{{ experienced ? '채용 시스템의 읽기 전용 테이블을 받은 뒤 연결합니다. 지금은 가짜 데이터입니다.' : '파일 형식은 샘플을 받은 뒤 맞춥니다. 지금은 파일을 고르지 않고 가짜 데이터로 반영합니다.' }}</p>
+          </div>
+        </section>
+
         <!-- 면접관 매칭 -->
-        <section class="card">
+        <section v-else class="card">
           <header class="border-b border-line px-4 py-3"><h2 class="h-sec flex items-center gap-2"><UserCheck :size="17" class="text-brand" />면접관 매칭</h2></header>
           <div class="space-y-3 p-4">
             <p class="flex items-center gap-2 text-[0.95rem]">

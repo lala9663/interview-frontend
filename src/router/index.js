@@ -17,6 +17,10 @@ const routes = [
   { path: '/admin/setup', name: 'admin-setup', component: () => import('@/features/admin/SetupPage.vue'), meta: { admin: true } },
   { path: '/admin/quality', name: 'admin-quality', component: () => import('@/features/admin/QualityPage.vue'), meta: { admin: true, feature: 'quality' } },
   { path: '/admin/interviewers', name: 'admin-interviewers', component: () => import('@/features/admin/InterviewersPage.vue'), meta: { admin: true, feature: 'interviewerStats' } },
+  { path: '/admin/calendar', name: 'admin-calendar', component: () => import('@/features/admin/CalendarPage.vue'), meta: { admin: true, feature: 'calendar' } },
+  { path: '/admin/personas', name: 'admin-personas', component: () => import('@/features/admin/PersonaPage.vue'), meta: { admin: true, feature: 'persona' } },
+  { path: '/admin/models', name: 'admin-models', component: () => import('@/features/admin/ModelPage.vue'), meta: { admin: true, feature: 'modelSwitch' } },
+  { path: '/admin/system', name: 'admin-system', component: () => import('@/features/admin/SystemStatusPage.vue'), meta: { admin: true, feature: 'systemStatus' } },
   { path: '/question-bank', name: 'bank', component: () => import('@/features/bank/QuestionBankPage.vue'), meta: { feature: 'questionBank' } },
   { path: '/:rest(.*)*', redirect: '/' },
 ]

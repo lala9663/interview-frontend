@@ -27,12 +27,16 @@ DSInterview(면접 지원 서비스)의 화면(면접관·관리자용). 세 레
 src/
   api/http.js        fetch 한 곳(토큰, 401 처리, mock 전환). 화면에서 호출에 직접 쓰지 않는다(`isMock`만 가져다 쓴다)
   api/index.js       엔드포인트 함수(경로 문자열은 여기에만)
-  mocks/             모의 백엔드(server.js, 관리자 집계는 admin.js), 모의 Agent 소켓(socket.js), 가상 데이터(data.js), 목업 재생 상태(demo.js), 주차별 목업의 변경 요약(changelog.js)
+  mocks/             모의 백엔드(server.js, 관리자 집계는 admin.js), 모의 Agent 소켓(socket.js), 가상 데이터(data.js: 신입·경력 대본, 페르소나, 시스템 상태 값 포함), 목업 재생 상태(demo.js), 주차별 목업의 변경 요약(changelog.js)
   stores/            pinia: auth(로그인), ui(테마·신입/경력 탭과 채용 선택·토스트)
-  lib/               labels.js(열거형→한국어·색), format.js(시각), poll.js(작업 대기), features.js(주차별 목업에서 켤 기능)
-  components/        여러 화면이 같이 쓰는 것(AppShell, InterviewHeader, PhaseSteps, StageTrack, Modal …)
+  lib/               labels.js(열거형→한국어·색), format.js(시각), poll.js(작업 대기), features.js(주차별 목업에서 켤 기능, 가짜 데이터로 돌 때만 켜는 화면 시안 MOCKUP_ONLY, 신입 면접의 실시간 기능 잠금 liveLocked)
+  components/        여러 화면이 같이 쓰는 것(AppShell, InterviewHeader, PhaseSteps, StageTrack, Modal, ToggleSwitch(켜고 끄는 스위치), SystemStatusChip(위쪽 줄의 시스템 상태 버튼), SystemStatusPanel(그 내용) …)
   features/<기능>/   화면. 한 기능의 파일은 그 폴더 안에만 둔다
     auth today candidates interview(면접 전) room(면접 중) review(면접 후) pipeline bank admin(관리자 전용)
+    interview/       PrepPage, PersonaPicker(페르소나 선택)
+    room/            RoomPage(배치 두 가지: docs/realtime-room.md), QuestionTreePane(질문과 꼬리질문 나무), CandidateBrief(지원자 요약 탭), TranscriptPane, QuestionPane·AssistPane(feedback1118이 꺼졌을 때의 배치)
+    review/          ReviewPage, ReportView, MyEvaluationPanel, AskedQuestionsPanel, QuestionFeedback(준비된 질문 피드백)
+    admin/           AdminTabs(하위 탭), OperationsPage, SetupPage(등록·매칭), CalendarPage(일정 달력), QualityPage, InterviewersPage, PersonaPage(면접 페르소나), ModelPage(AI 모델), SystemStatusPage(시스템 상태)
   router/index.js    라우트 표
   styles/main.css    색 토큰(CSS 변수)과 공용 클래스(.btn .card .badge .input …)
 public/audio/pcm16-worklet.js   마이크 → 16kHz PCM16 (AudioWorklet)

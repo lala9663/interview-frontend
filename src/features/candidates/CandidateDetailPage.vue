@@ -8,7 +8,8 @@ import Modal from '@/components/Modal.vue'
 import { candidateApi } from '@/api/index.js'
 import { useAuth } from '@/stores/auth.js'
 import { useUi } from '@/stores/ui.js'
-import { BLIND_FIELD, INTERVIEW_TYPE, PROFILE_EXTRA, TRACK, labelOf } from '@/lib/labels.js'
+import { APPLICANT_TYPE, BLIND_FIELD, INTERVIEW_TYPE, PROFILE_EXTRA, TRACK, labelOf } from '@/lib/labels.js'
+import { has } from '@/lib/features.js'
 
 const props = defineProps({ id: { type: [String, Number], required: true } })
 const auth = useAuth()
@@ -19,7 +20,7 @@ const c = ref(null)
 const adding = ref(false)
 const form = ref({ type: 'JOB', mode: 'ONLINE', scheduledAt: '', durationMinutes: 60 })
 // 등록할 수 있는 면접 종류는 그 면접자의 채용 구분을 따른다: 신입은 PT·인성(대면), 경력은 포트폴리오·직무·인성(화상)
-const typeChoices = computed(() => (c.value?.track === 'EXPERIENCED' ? ['PORTFOLIO', 'JOB', 'PERSONALITY'] : ['PT', 'PERSONALITY']))
+const typeChoices = computed(() => (has('feedback1118') ? ['JOB', 'PERSONALITY'] : c.value?.track === 'EXPERIENCED' ? ['PORTFOLIO', 'JOB', 'PERSONALITY'] : ['PT', 'PERSONALITY']))
 function openAdd() {
   const exp = c.value?.track === 'EXPERIENCED'
   form.value = { type: typeChoices.value[0], mode: exp ? 'ONLINE' : 'OFFLINE', scheduledAt: '', durationMinutes: exp ? 60 : 30 }
@@ -60,7 +61,7 @@ async function addInterview() {
         <div>
           <h1 class="h-page leading-tight">{{ c.name }}</h1>
           <p class="text-[0.9rem] text-sub">
-            <span class="badge mr-1" :class="`tone-${TRACK[c.track]?.tone}`">{{ labelOf(TRACK, c.track) }}</span>{{ c.jobTitle }} · {{ c.applicantNo }}
+            <span class="badge mr-1" :class="`tone-${TRACK[c.track]?.tone}`">{{ labelOf(TRACK, c.track) }}</span><span v-if="has('feedback1118') && c.applicantType" class="badge tone-neutral mr-1">{{ labelOf(APPLICANT_TYPE, c.applicantType) }}</span>{{ c.jobTitle }} · {{ c.applicantNo }}
           </p>
         </div>
       </div>

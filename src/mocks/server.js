@@ -3,7 +3,7 @@
 import { ApiError } from '@/api/http.js'
 import * as D from './data.js'
 import { adminRoutes } from './admin.js'
-import { has } from '@/lib/features.js'
+import { has, liveLocked } from '@/lib/features.js'
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 const clone = (x) => JSON.parse(JSON.stringify(x))
@@ -22,6 +22,8 @@ const db = {
   uploads: [],
   jobs: new Map(),
   bank: clone(D.questionBank),
+  personas: clone(D.personas), // 화면 시안
+  aiModels: { tasks: clone(D.aiModelTasks), history: [] }, // 화면 시안: 작업별 모델과 바꾼 기록
 }
 let seq = 90000
 const nextId = () => ++seq
@@ -57,12 +59,15 @@ function interviewView(it) {
   const c = cand(it.candidateId)
   return {
     id: it.id,
-    candidate: { id: c.id, name: c.name, applicantNo: c.applicantNo, jobTitle: c.jobTitle },
+    // applicantType 은 API 명세에 아직 없다(11/18 회의 반영 시안)
+    candidate: { id: c.id, name: c.name, applicantNo: c.applicantNo, jobTitle: c.jobTitle, ...(has('feedback1118') ? { applicantType: c.applicantType } : {}) },
     track: c.track, type: it.type, seq: it.seq, mode: it.mode, status: it.status,
     scheduledAt: it.scheduledAt, durationMinutes: it.durationMinutes,
+    ...(has('persona') && personaOf(it) ? { persona: (({ id, name, tone, questionType, followUpType }) => ({ id, name, tone, questionType, followUpType }))(personaOf(it)) } : {}),
     interviewers: it.interviewerIds.map((id) => userRef(id)),
     roomId: it.roomId, roomStatus: it.roomStatus,
-    briefingStatus: it.briefingStatus, reportStatus: it.reportStatus,
+    // 신입은 실시간 녹음을 잠가 두어 대화 기록이 없고, 그래서 보고서도 없다
+    briefingStatus: it.briefingStatus, reportStatus: liveLocked(c.track) ? null : it.reportStatus,
     // 보정본은 주차별 목업에서 그 주차부터 보인다(lib/features.js). 그 전에는 초안으로 보인다.
     reportBasis: it.reportBasis === 'REFINED' && !has('refinedReport') ? 'LIVE' : it.reportBasis,
   }
@@ -88,21 +93,48 @@ function candidateRow(c) {
   const ids = current ? current.interviewerIds : [] // 지금 차수 면접의 면접관(API 명세 2.10)
   return {
     id: c.id, applicantNo: c.applicantNo, name: c.name, track: c.track, jobCode: c.jobCode, jobTitle: c.jobTitle,
+    ...(has('feedback1118') ? { applicantType: c.applicantType } : {}),
     interviewers: ids.map((id) => ({ id, name: D.users.find((u) => u.id === id).name })),
     briefingStatus: current?.briefingStatus ?? null,
     currentStage: current ? { type: current.type, status: current.status } : null,
   }
 }
 
+// ---- 면접 페르소나(화면 시안) ----
+const personasOn = () => db.personas.filter((p) => p.enabled)
+/** 관리자가 적는 페르소나의 글 항목만 골라 다듬는다 */
+const personaFields = (b) => ({
+  description: (b.description || '').trim(), questionType: (b.questionType || '').trim(), followUpType: (b.followUpType || '').trim(),
+  fit: (b.fit || '').trim(), guard: (b.guard || '').trim(), tone: ['brand', 'ok', 'warn', 'bad', 'neutral'].includes(b.tone) ? b.tone : 'neutral',
+})
+/** 새 면접의 기본 선택: 추천으로 켠 것 가운데 맨 위, 없으면 쓰는 것 가운데 맨 위 */
+const defaultPersona = () => personasOn().find((p) => p.recommended) || personasOn()[0] || null
+/** 이 면접의 페르소나. 고른 것이 꺼졌으면 기본 선택으로 돌아간다(이미 시작한 면접은 그대로 둔다) */
+function personaOf(it) {
+  const chosen = db.personas.find((p) => p.id === it.personaId)
+  if (chosen && (chosen.enabled || it.roomStatus === 'LIVE' || it.roomStatus === 'ENDED')) return chosen
+  return defaultPersona()
+}
+/** 준비된 질문(가지가 아닌 것)의 표현을 페르소나에 맞춘다. 원래 표현은 _base 에 둔다 */
+function applyPersona(it, list) {
+  const texts = D.personaTexts(cand(it.candidateId), it, personaOf(it)?.id)
+  list.filter((q) => !q.parentQuestionId && ['RESUME', 'JD', 'BANK'].includes(q.source)).forEach((q, i) => {
+    q._base ??= q.text
+    q.text = texts?.[i] || q._base
+  })
+}
+
 function questionsOf(it) {
   if (!db.questions.has(it.id)) {
     // 질문 은행에서 온 질문은 주차별 목업에서 질문 은행이 보이는 주차부터 넣는다(lib/features.js)
-    db.questions.set(it.id, D.questionsFor(cand(it.candidateId), it).filter((q) => q.source !== 'BANK' || has('questionBank')))
+    const c = cand(it.candidateId)
+    db.questions.set(it.id, D.questionsFor(c, it, { predicted: liveLocked(c.track) }).filter((q) => q.source !== 'BANK' || has('questionBank')))
+    if (has('persona')) applyPersona(it, db.questions.get(it.id))
   }
   return db.questions.get(it.id)
 }
 function utterancesOf(it) {
-  if (!db.utterances.has(it.roomId)) db.utterances.set(it.roomId, it.roomStatus === 'ENDED' ? clone(D.sampleTranscript) : [])
+  if (!db.utterances.has(it.roomId)) db.utterances.set(it.roomId, it.roomStatus === 'ENDED' && !liveLocked(cand(it.candidateId).track) ? clone(D.transcriptFor(cand(it.candidateId).track)) : [])
   return db.utterances.get(it.roomId)
 }
 
@@ -120,6 +152,8 @@ function startJob(type, interviewId, ms, done) {
 // 실시간 방(모의 소켓)이 쓰는 저장 함수
 export const mockStore = {
   questions: (roomId) => questionsOf(byRoom(roomId)),
+  /** 이 방 면접자의 트랙(대본을 고르는 데 쓴다) */
+  track: (roomId) => cand(byRoom(roomId).candidateId).track,
   saveUtterance(roomId, u) {
     const list = utterancesOf(byRoom(roomId))
     const i = list.findIndex((x) => x.seq === u.seq)
@@ -168,6 +202,7 @@ const routes = [
   ['GET', '/recruitments/:id/candidates', ([id], { params }) => {
     let rows = db.candidates.filter((c) => c.recruitmentId === Number(id))
     if (params?.jobCode) rows = rows.filter((c) => c.jobCode === params.jobCode)
+    if (params?.applicantType) rows = rows.filter((c) => c.applicantType === params.applicantType) // 화면 시안: API 명세에 아직 없는 조건
     if (params?.q) rows = rows.filter((c) => (c.name + c.applicantNo).includes(params.q))
     let all = rows.map(candidateRow)
     if (params?.status) all = all.filter((c) => c.currentStage?.status === params.status)
@@ -205,7 +240,7 @@ const routes = [
       const nid = nextId()
       const base = clone(D.candidates.find((c) => c.recruitmentId === rid) || D.candidates[0])
       db.candidates.push({ ...base, id: nid, name, applicantNo: `UP-${nid}`, recruitmentId: rid, jobCode: job.jobCode, jobTitle: job.title })
-      db.interviews.push({ id: nextId(), candidateId: nid, type: 'PT', seq: 1, mode: 'OFFLINE', status: 'WAITING', scheduledAt: null, durationMinutes: 30, interviewerIds: [], roomId: null, roomStatus: null, briefingStatus: null, reportStatus: null, reportBasis: null, _n: i })
+      db.interviews.push({ id: nextId(), candidateId: nid, type: 'JOB', seq: 1, mode: 'OFFLINE', status: 'WAITING', scheduledAt: null, durationMinutes: 30, interviewerIds: [], roomId: null, roomStatus: null, briefingStatus: null, reportStatus: null, reportBasis: null, _n: i })
     })
     const batch = {
       id: nextId(), fileName: file?.name || 'upload.xlsx', uploadedAt: new Date().toISOString(), uploadedBy: me().name,
@@ -254,6 +289,7 @@ const routes = [
     const job = startJob('BRIEFING', it.id, 2500, () => {
       it.briefingStatus = 'SUCCEEDED'
       db.briefings.set(it.id, { ...D.briefingFor(cand(it.candidateId), it), generatedAt: new Date().toISOString() })
+      if (it.roomStatus !== 'LIVE' && it.roomStatus !== 'ENDED') db.questions.delete(it.id) // 질문도 함께 새로 만든다
     })
     return { jobId: job.id }
   }],
@@ -288,8 +324,13 @@ const routes = [
   }],
   ['POST', '/rooms/:id/end', ([id]) => {
     const it = byRoom(id)
-    Object.assign(it, { roomStatus: 'ENDED', status: 'EVALUATING', _endedAt: new Date().toISOString(), reportStatus: 'RUNNING', reportBasis: null })
     const c = cand(it.candidateId)
+    if (liveLocked(c.track)) {
+      // 실시간 기능이 잠긴 면접: 대화 기록이 없으므로 보고서를 만들지 않는다
+      Object.assign(it, { roomStatus: 'ENDED', status: 'EVALUATING', _endedAt: new Date().toISOString(), reportStatus: null, reportBasis: null })
+      return roomView(it)
+    }
+    Object.assign(it, { roomStatus: 'ENDED', status: 'EVALUATING', _endedAt: new Date().toISOString(), reportStatus: 'RUNNING', reportBasis: null })
     // 초안(LIVE) → 잠시 뒤 보정본(REFINED). 실제 서버의 흐름을 짧게 흉내 낸다.
     startJob('REPORT', it.id, 4000, () => {
       db.reports.set(it.id, [{ ...D.reportFor(c, it, 'LIVE'), generatedAt: new Date().toISOString() }])
@@ -333,9 +374,14 @@ const routes = [
     if (body.submitted && it.status === 'EVALUATING') it.status = 'DONE'
     return v
   }],
-  ['GET', '/interviews/:id/ai-evaluation', ([id]) => (intv(id).roomStatus === 'ENDED' ? D.aiEvaluationFor() : { status: null, scores: [] })],
+  ['GET', '/interviews/:id/ai-evaluation', ([id]) => {
+    const it = intv(id)
+    const track = cand(it.candidateId).track
+    return it.roomStatus === 'ENDED' && !liveLocked(track) ? D.aiEvaluationFor(track) : { status: null, scores: [] }
+  }],
   ['GET', '/interviews/:id/report', ([id]) => {
     const it = intv(id)
+    if (liveLocked(cand(it.candidateId).track)) return { status: null, content: null }
     if (it.reportStatus === 'RUNNING') return { status: 'RUNNING', content: null }
     if (it.reportStatus !== 'SUCCEEDED') return { status: null, content: null }
     if (!db.reports.has(it.id)) db.reports.set(it.id, [D.reportFor(cand(it.candidateId), it, 'LIVE'), ...(it.reportBasis === 'REFINED' && has('refinedReport') ? [D.reportFor(cand(it.candidateId), it, 'REFINED')] : [])])
@@ -353,6 +399,64 @@ const routes = [
   }],
   ['GET', '/interviews/:id/jobs', ([id]) => ({ items: [...db.jobs.values()].filter((j) => j.interviewId === Number(id)) })],
   ['GET', '/ai-jobs/:id', ([id]) => db.jobs.get(Number(id))],
+
+  // ---- 화면 시안: 면접 페르소나, 시스템 상태 (API 명세에 아직 없다) ----
+  ['GET', '/personas', () => ({ items: db.personas })],
+  ['POST', '/admin/personas', (_, { body }) => {
+    const name = (body.name || '').trim()
+    if (!name) throw new ApiError(400, 'PERSONA_NAME_REQUIRED', '페르소나 이름을 적어 주세요.')
+    if (db.personas.some((x) => x.name === name)) throw new ApiError(409, 'PERSONA_NAME_TAKEN', '같은 이름의 페르소나가 이미 있습니다.')
+    const p = { id: `CUSTOM-${nextId()}`, ...personaFields(body), name, recommended: false, enabled: true, custom: true }
+    db.personas.push(p)
+    return p
+  }],
+  ['DELETE', '/admin/personas/:id', ([id]) => {
+    const p = db.personas.find((x) => x.id === id)
+    if (!p) throw new ApiError(404, 'PERSONA_NOT_FOUND', '페르소나를 찾을 수 없습니다.')
+    if (!p.custom) throw new ApiError(409, 'PERSONA_BUILT_IN', '기본 페르소나는 지울 수 없습니다. 사용을 꺼 주세요.')
+    if (p.enabled && personasOn().length === 1) throw new ApiError(409, 'PERSONA_LAST_ONE', '페르소나는 하나 이상 사용해야 합니다.')
+    db.personas = db.personas.filter((x) => x.id !== id)
+    return null
+  }],
+  ['PATCH', '/admin/personas/:id', ([id], { body }) => {
+    const p = db.personas.find((x) => x.id === id)
+    if (!p) throw new ApiError(404, 'PERSONA_NOT_FOUND', '페르소나를 찾을 수 없습니다.')
+    if (body.name !== undefined) {
+      const name = (body.name || '').trim()
+      if (!name) throw new ApiError(400, 'PERSONA_NAME_REQUIRED', '페르소나 이름을 적어 주세요.')
+      if (db.personas.some((x) => x.id !== id && x.name === name)) throw new ApiError(409, 'PERSONA_NAME_TAKEN', '같은 이름의 페르소나가 이미 있습니다.')
+      Object.assign(p, personaFields({ ...p, ...body }), { name })
+    }
+    if (body.enabled === false && p.enabled && personasOn().length === 1) throw new ApiError(409, 'PERSONA_LAST_ONE', '페르소나는 하나 이상 사용해야 합니다.')
+    if (body.enabled !== undefined) p.enabled = !!body.enabled
+    if (body.recommended !== undefined) p.recommended = !!body.recommended
+    if (p.recommended) p.enabled = true // 추천하려면 쓰는 상태여야 한다
+    if (body.enabled === false) p.recommended = false
+    return p
+  }],
+  ['PUT', '/interviews/:id/persona', ([id], { body }) => {
+    const it = intv(id)
+    if (it.roomStatus === 'LIVE' || it.roomStatus === 'ENDED') throw new ApiError(409, 'PERSONA_LOCKED', '면접이 시작된 뒤에는 페르소나를 바꿀 수 없습니다.')
+    const p = db.personas.find((x) => x.id === body.personaId && x.enabled)
+    if (!p) throw new ApiError(400, 'PERSONA_NOT_AVAILABLE', '쓸 수 없는 페르소나입니다.')
+    it.personaId = p.id
+    applyPersona(it, questionsOf(it))
+    return interviewView(it)
+  }],
+  ['GET', '/system/status', () => D.systemStatus()],
+  // 화면 시안: 관리 > AI 모델
+  ['GET', '/admin/models', () => ({ models: D.aiModels, tasks: db.aiModels.tasks, history: db.aiModels.history })],
+  ['PUT', '/admin/models/tasks/:key', ([key], { body }) => {
+    const task = db.aiModels.tasks.find((t) => t.key === key)
+    const to = D.aiModels.find((m) => m.id === body.modelId)
+    if (!task) throw new ApiError(404, 'MODEL_TASK_NOT_FOUND', '작업을 찾을 수 없습니다.')
+    if (!to || to.kind !== task.kind) throw new ApiError(400, 'MODEL_NOT_AVAILABLE', '이 작업에 쓸 수 없는 모델입니다.')
+    if (to.status === 'DOWN') throw new ApiError(409, 'MODEL_DOWN', '멈춰 있는 모델로는 바꿀 수 없습니다.')
+    const from = D.aiModels.find((m) => m.id === task.modelId)
+    task.modelId = to.id
+    db.aiModels.history = [{ taskKey: key, taskLabel: task.label, fromName: from.name, toName: to.name, changedAt: new Date().toISOString(), changedBy: me().name }, ...db.aiModels.history].slice(0, 5)
+    return task
+  }],
 
   ['GET', '/dashboard/summary', (_, { params }) => {
     const admin = me().role === 'ADMIN'

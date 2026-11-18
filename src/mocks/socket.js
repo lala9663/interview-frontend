@@ -2,7 +2,7 @@
 // 마이크 오디오는 받기만 하고 버린다. "말하고 있다"는 것만 흉내 낸다.
 //
 // 시각은 자체 시계(vt)로 잰다: 일시정지와 배속(demo.paused, demo.speed)을 걸 수 있어야 해서다.
-import { liveScript } from './data.js'
+import { scriptFor } from './data.js'
 import { mockStore } from './server.js'
 import { demo, resetDemo } from './demo.js'
 import { has } from '@/lib/features.js'
@@ -21,8 +21,10 @@ export class MockRoomSocket {
     this.index = 0
     this.running = false
     this.manualRole = 'AUTO'
+    // 경력(화상 직무 면접)과 신입의 대본이 다르다
+    this.script = scriptFor(mockStore.track(this.roomId))
     resetDemo()
-    demo.total = liveScript.length
+    demo.total = this.script.length
     this.ticker = setInterval(() => this.tick(), TICK)
     this.later(() => {
       this.emit({ type: 'ready', roomId: this.roomId, audio: true, sttModel: 'mock-whisper', llmModel: 'mock-llm', lastSeq: 0 })
@@ -81,12 +83,12 @@ export class MockRoomSocket {
   /** 대본 한 문장: 받아 적기 → 다듬기·화자 구분 → (면접관이면) 질문 찾기 → (지원자면) 꼬리질문 */
   next() {
     if (!this.running) return
-    if (this.index >= liveScript.length) {
+    if (this.index >= this.script.length) {
       demo.speaker = null
       this.stage('END', [])
       return
     }
-    const line = liveScript[this.index++]
+    const line = this.script[this.index++]
     const seq = ++this.seq
     const words = line.raw.split(' ')
     const step = 170
