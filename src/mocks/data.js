@@ -467,8 +467,17 @@ const PERSONA_TEXT = {
     '다시 한다면 어떻게 해 보고 싶으신가요?',
   ],
 }
-/** 그 면접에서 페르소나에 맞춘 질문 표현들(없으면 null → 원래 표현을 쓴다) */
+/** 그 면접에서 페르소나에 맞춘 질문 표현들(없으면 null → personaRewrite 로 원래 표현을 바꿔 쓴다) */
 export const personaTexts = (c, it, personaId) => (c.track === 'EXPERIENCED' && it.type === 'JOB' ? PERSONA_TEXT[personaId] || null : null)
+
+// 따로 써 둔 표현이 없는 면접(신입, 인성 면접 등)은 원래 질문에 페르소나의 요구를 덧붙인다. 표준 구조화형(4)과 관리자가 더한 페르소나는 그대로 둔다.
+const PERSONA_REWRITE = {
+  1: (t) => `${t} 판단한 근거와 검토한 대안까지 단계별로 설명해 주세요.`,
+  2: (t) => `${t} 본인이 직접 한 일만, 수치나 사례를 근거로 말씀해 주세요.`,
+  3: (t) => `${t} 그때의 상황, 본인이 한 일, 결과 순서로 말씀해 주세요.`,
+  5: (t) => `편하게 말씀해 주세요. ${t}`,
+}
+export const personaRewrite = (text, personaId) => (PERSONA_REWRITE[personaId] ? PERSONA_REWRITE[personaId](text) : text)
 
 // ---- 시스템 상태 (API 명세 2.13) ----
 // 값은 화면 모양을 보기 위한 가짜 값이다. 실제로는 백엔드가 각 서비스와 AI 작업 기록에서 모은다.

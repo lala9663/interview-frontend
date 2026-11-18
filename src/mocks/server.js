@@ -33,6 +33,11 @@ let seq = 90000
 const nextId = () => ++seq
 
 // 지금 로그인한 사람. 화면을 새로 읽으면 db.me가 사라지므로 브라우저에 남은 로그인 정보로 되찾는다.
+/** 관리자가 아니면 403(백엔드의 ADMIN 전용 경로와 같게) */
+function adminOnly() {
+  if (me().role !== 'ADMIN') throw new ApiError(403, 'FORBIDDEN', '관리자만 할 수 있습니다.')
+}
+
 function me() {
   if (db.me) return db.me
   try {
@@ -124,7 +129,7 @@ function applyPersona(it, list) {
   const texts = D.personaTexts(cand(it.candidateId), it, personaOf(it)?.id)
   list.filter((q) => !q.parentQuestionId && ['RESUME', 'JD', 'BANK'].includes(q.source)).forEach((q, i) => {
     q._base ??= q.text
-    q.text = texts?.[i] || q._base
+    q.text = texts?.[i] || D.personaRewrite(q._base, personaOf(it)?.id)
   })
 }
 
@@ -235,6 +240,7 @@ const routes = [
   }],
 
   ['POST', '/recruitments/:id/uploads', async ([id], { form }) => {
+    adminOnly() // 엑셀 업로드와 이력 조회는 관리자만(API 명세 2.3)
     await wait(900)
     const file = form?.get?.('file')
     const rid = Number(id)
@@ -257,8 +263,8 @@ const routes = [
     db.uploads.unshift(batch)
     return batch
   }],
-  ['GET', '/recruitments/:id/uploads', () => ({ items: db.uploads.map((u) => ({ ...u, errors: [] })) })],
-  ['GET', '/uploads/:id', ([id]) => db.uploads.find((u) => u.id === Number(id))],
+  ['GET', '/recruitments/:id/uploads', () => adminOnly() || ({ items: db.uploads.map((u) => ({ ...u, errors: [] })) })],
+  ['GET', '/uploads/:id', ([id]) => adminOnly() || db.uploads.find((u) => u.id === Number(id))],
   ['POST', '/recruitments/:id/assignments/auto', async ([id]) => {
     await wait(600)
     let assigned = 0
@@ -283,17 +289,23 @@ const routes = [
   ['GET', '/interviews/:id', ([id]) => interviewView(intv(id))],
   ['GET', '/interviews/:id/briefing', ([id]) => {
     const it = intv(id)
-    if (it.briefingStatus !== 'SUCCEEDED') return { status: it.briefingStatus, summary: null, excluded: [] }
+    // 만든 적이 없으면 요약이 없다. 다시 만드는 중이면 예전 요약을 그대로 싣고 무엇을 만드는지(generating)를 알린다
+    if (it.briefingStatus == null || (it.briefingStatus !== 'SUCCEEDED' && !it._briefed)) return { status: it.briefingStatus, summary: null, excluded: [], generating: it.briefingStatus ? it._generating || 'ALL' : null }
     if (!db.briefings.has(it.id)) db.briefings.set(it.id, D.briefingFor(cand(it.candidateId), it))
-    return db.briefings.get(it.id)
+    return { ...db.briefings.get(it.id), status: it.briefingStatus, generating: it.briefingStatus === 'SUCCEEDED' ? null : it._generating || 'ALL' }
   }],
-  ['POST', '/interviews/:id/briefing/generate', ([id]) => {
+  ['POST', '/interviews/:id/briefing/generate', ([id], { body }) => {
     const it = intv(id)
+    // target: ALL(요약과 질문) | SUMMARY(요약만) | QUESTIONS(질문만). API 명세 2.6
+    const target = ['SUMMARY', 'QUESTIONS'].includes(body?.target) ? body.target : 'ALL'
+    it._briefed = it.briefingStatus === 'SUCCEEDED' || db.briefings.has(it.id)
     it.briefingStatus = 'RUNNING'
+    it._generating = target
     const job = startJob('BRIEFING', it.id, 2500, () => {
       it.briefingStatus = 'SUCCEEDED'
-      db.briefings.set(it.id, { ...D.briefingFor(cand(it.candidateId), it), generatedAt: new Date().toISOString() })
-      if (it.roomStatus !== 'LIVE' && it.roomStatus !== 'ENDED') db.questions.delete(it.id) // 질문도 함께 새로 만든다
+      it._generating = null
+      if (target !== 'QUESTIONS') db.briefings.set(it.id, { ...D.briefingFor(cand(it.candidateId), it), generatedAt: new Date().toISOString() })
+      if (target !== 'SUMMARY' && it.roomStatus !== 'LIVE' && it.roomStatus !== 'ENDED') db.questions.delete(it.id) // 질문을 새로 만든다
     })
     return { jobId: job.id }
   }],
@@ -449,11 +461,14 @@ const routes = [
     if (!p) throw new ApiError(400, 'PERSONA_NOT_AVAILABLE', '쓸 수 없는 페르소나입니다.')
     const before = personaOf(it)?.id
     it.personaId = p.id
-    // 적용되는 페르소나가 바뀌었고 사전 리포트가 이미 있으면 다시 만든다(API 명세 2.5). 끝나면 질문 표현이 새 페르소나로 바뀐다
+    // 적용되는 페르소나가 바뀌었고 사전 리포트가 이미 있으면 질문만 다시 만든다(API 명세 2.5). 끝나면 질문 표현이 새 페르소나로 바뀐다
     if (before !== p.id && it.briefingStatus === 'SUCCEEDED') {
+      it._briefed = true
       it.briefingStatus = 'RUNNING'
+      it._generating = 'QUESTIONS'
       startJob('BRIEFING', it.id, 1800, () => {
         it.briefingStatus = 'SUCCEEDED'
+        it._generating = null
         applyPersona(it, questionsOf(it))
       })
     } else applyPersona(it, questionsOf(it))

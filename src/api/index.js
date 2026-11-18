@@ -48,7 +48,8 @@ export const interviewApi = {
   list: (params) => http.get('/interviews', params),
   get: (id) => http.get(`/interviews/${id}`),
   briefing: (id) => http.get(`/interviews/${id}/briefing`),
-  generateBriefing: (id) => http.post(`/interviews/${id}/briefing/generate`),
+  // target: 'ALL'(요약과 질문 모두) | 'SUMMARY'(요약만) | 'QUESTIONS'(질문만). API 명세 2.6
+  generateBriefing: (id, target = 'ALL') => http.post(`/interviews/${id}/briefing/generate`, { target }),
   questions: (id) => http.get(`/interviews/${id}/questions`),
   addQuestion: (id, body) => http.post(`/interviews/${id}/questions`, body),
   patchQuestion: (questionId, body) => http.patch(`/questions/${questionId}`, body),

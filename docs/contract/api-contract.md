@@ -105,9 +105,9 @@
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
 | POST | `/recruitments/{id}/uploads` | multipart `file`(xlsx). 행 단위로 처리하고 실패 행은 오류로 남긴다 (ADMIN) |
-| GET | `/recruitments/{id}/uploads` | 업로드 이력 |
-| GET | `/uploads/{id}` | 업로드 한 건과 오류 목록 |
-| GET | `/uploads/template` | 샘플 엑셀 내려받기 |
+| GET | `/recruitments/{id}/uploads` | 업로드 이력 (ADMIN) |
+| GET | `/uploads/{id}` | 업로드 한 건과 오류 목록 (ADMIN) |
+| GET | `/uploads/template` | 샘플 엑셀 내려받기 (ADMIN) |
 | GET | `/recruitments/{id}/candidates?jobCode=&applicantType=&q=&status=&type=&page=&size=` | 면접자 목록. `status`와 `type`(`InterviewType`)은 "지금 차수" 면접의 값으로 거른다. `applicantType`(`ApplicantType`)은 면접자 유형으로 거른다 |
 | GET | `/candidates/{id}` | 면접자 상세 |
 | GET | `/candidates/{id}/progress` | 전형 진행(면접 차수별 상태). 경력 화면의 진행 표시에 쓴다 |
@@ -153,7 +153,7 @@
 | POST | `/candidates/{id}/interviews` | `{ "type", "mode", "scheduledAt", "durationMinutes" }` 면접 등록(1인당 여러 건) (ADMIN) |
 | GET | `/interviews/{id}` | 상세 |
 | PATCH | `/interviews/{id}` | 일정·상태 수정 |
-| PUT | `/interviews/{id}/persona` | `{ "personaId": 3 }` 이 면접의 페르소나를 고른다(2.12). 배정된 면접관 또는 ADMIN. 적용되는 페르소나가 실제로 바뀌고 사전 리포트가 이미 있으면 새 페르소나로 다시 만드는 작업을 시작한다(그동안 `briefingStatus`는 `PENDING` 또는 `RUNNING`. 이미 돌고 있는 브리핑 작업이 있으면 그 작업이 끝난 뒤 페르소나가 달라졌을 때 한 번 더 만든다). `personaId`가 없으면 `400 VALIDATION_FAILED`, 방이 `LIVE`·`ENDED`면 `409 PERSONA_LOCKED`, 없는 id면 `404 PERSONA_NOT_FOUND`, 쓰지 않는 페르소나면 `400 PERSONA_NOT_AVAILABLE`. 응답은 Interview |
+| PUT | `/interviews/{id}/persona` | `{ "personaId": 3 }` 이 면접의 페르소나를 고른다(2.12). 배정된 면접관 또는 ADMIN. 적용되는 페르소나가 실제로 바뀌고 사전 리포트가 이미 있으면 새 페르소나로 준비된 질문을 다시 만드는 작업을 시작한다(2.6의 `target: QUESTIONS`와 같다. 요약은 그대로 둔다. 그동안 `briefingStatus`는 `PENDING` 또는 `RUNNING`. 이미 돌고 있는 브리핑 작업이 있으면 그 작업이 끝난 뒤 페르소나가 달라졌을 때 한 번 더 만든다). `personaId`가 없으면 `400 VALIDATION_FAILED`, 방이 `LIVE`·`ENDED`면 `409 PERSONA_LOCKED`, 없는 id면 `404 PERSONA_NOT_FOUND`, 쓰지 않는 페르소나면 `400 PERSONA_NOT_AVAILABLE`. 응답은 Interview |
 
 ```json
 // Interview
@@ -175,7 +175,7 @@
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
 | GET | `/interviews/{id}/briefing` | 사전 리포트. 없으면 `status: null` |
-| POST | `/interviews/{id}/briefing/generate` | 생성·재생성. `202 { "jobId" }` |
+| POST | `/interviews/{id}/briefing/generate` | 생성·재생성. 본문(선택) `{ "target": "ALL" \| "SUMMARY" \| "QUESTIONS" }`. 없으면 `ALL`. 모르는 값이면 `400 VALIDATION_FAILED`. `202 { "jobId" }` |
 | GET | `/interviews/{id}/questions` | 준비된 질문 + 면접 중 추가된 질문 |
 | POST | `/interviews/{id}/questions` | `{ "text", "category" }` 수동 추가(`source: MANUAL`) |
 | PATCH | `/questions/{id}` | `{ "text"?, "orderNo"?, "asked"?, "hidden"? }` |
@@ -190,9 +190,12 @@
                "timeline": [ { "period": "2024.03~2024.12", "text": "캡스톤 ..." } ],
                "checkItems": [ { "text": "유실률 개선에서 본인이 한 일", "evidenceFrom": "자기소개서", "evidence": "근거가 된 문장", "questionOrder": 1 } ] },
   "excluded": ["gender", "family"],
+  "generating": null,
   "previousRoundChecks": { "seq": 1, "type": "JOB", "items": ["정합성 문제를 실제로 겪은 사례"] } }
 ```
 
+- `target`(생성 요청): `ALL`은 요약과 준비된 질문을 모두 만든다. `SUMMARY`는 요약만 바꾸고 질문은 그대로 둔다. `QUESTIONS`는 준비된 질문만 바꾸고 요약과 `generatedAt`은 그대로 둔다. 질문을 바꿀 때 이미 물은 질문은 남는다.
+- `generating`: 만드는 중(`status`가 `PENDING`·`RUNNING`)이면 무엇을 만드는지(`ALL`·`SUMMARY`·`QUESTIONS`), 아니면 null. 다시 만드는 동안에도 `summary`에는 예전 요약이 온다. 화면은 이 값으로 요약 쪽과 질문 쪽 가운데 어디에 "만드는 중"을 보일지 정한다.
 - `summary.checkItems`(선택): 확인할 점마다 근거가 된 이력서 문장과, 그것을 확인하는 준비된 질문의 `orderNo`(`questionOrder`. 없으면 null. 준비된 질문은 `orderNo` 1부터 Agent가 준 순서대로 저장된다). Agent가 주면 그대로 전한다. 없으면 필드가 없고 화면은 `checkPoints`를 쓴다.
 - `previousRoundChecks`: 같은 면접자의 바로 앞 차수(`seq`가 하나 작은) 면접에 보고서가 있으면 그 최신 보고서의 `nextRoundChecks`. 앞 차수가 없거나 취소됐거나 항목이 없으면 null. 백엔드가 채우며, 사전 리포트가 아직 없어도(`status: null`) 이 값은 온다.
 - `parentQuestionId`가 있는 질문은 그 질문에서 나온 꼬리질문이다. 면접 중에 채택한 꼬리질문(category "꼬리질문")과, 면접 전에 만든 예상 꼬리질문(category "예상 꼬리질문". 실시간 기능을 쓰지 않는 면접에서 질문마다 미리 만든다. 4.1) 두 가지가 있고 둘 다 `source`는 `FOLLOW_UP`이다. 브리핑을 다시 만들어 부모 질문이 사라지면 이미 물은 예상 꼬리질문은 `parentQuestionId`가 null로 남는다.
@@ -521,7 +524,8 @@
   "questionCount": { "jd": 4, "resume": 6 },
   "applicantType": "OPEN",
   "persona": { "name": "경험 행동형", "description": "...", "questionType": "행동 사례 질문", "followUpType": "빠진 단계 보완", "guard": "..." },
-  "predictedFollowUps": 3 }
+  "predictedFollowUps": 3,
+  "parts": ["QUESTIONS"] }
 // 응답
 { "summary": { "headline": "...", "keyPoints": [], "strengths": [], "checkPoints": [], "timeline": [] },
   "questions": [ { "source": "RESUME", "category": "프로젝트", "text": "...", "intent": "...", "followUps": ["예상 꼬리질문"] } ],
@@ -530,6 +534,7 @@
 
 - `applicantType`, `persona`, `predictedFollowUps`는 선택 항목이다(없으면 지금까지와 같다). `applicantType`은 면접자 유형, `persona`는 이 면접에 적용할 페르소나다. Agent는 둘을 질문의 표현과 내용에 반영한다.
 - `predictedFollowUps`: 질문마다 미리 만들 예상 꼬리질문의 수. 백엔드는 실시간 기능을 쓰지 않는 면접(`liveEnabled: false`)에서 3을 보내고, 그 밖에는 보내지 않는다. Agent는 그 수만큼 `questions[].followUps`에 글을 넣는다. 백엔드는 이것을 그 질문을 부모로 하는 `FOLLOW_UP` 질문으로 저장한다.
+- `parts`(선택): 이번에 필요한 부분. `["SUMMARY"]` 또는 `["QUESTIONS"]`. 없으면 둘 다 만든다. 백엔드는 2.6의 `target`이 `SUMMARY`·`QUESTIONS`일 때만 보낸다. Agent는 필요 없는 부분을 만들지 않아도 된다(그 부분은 비워서 돌려준다). 둘 다 돌려줘도 백엔드는 요청한 부분만 저장한다.
 - 응답의 `summary.checkItems`(선택)는 2.6의 모양이다.
 - **Agent에 아직 반영하지 않았다(2026-11-18).** Agent는 모르는 요청 항목을 무시하므로 지금은 이 세 항목이 결과에 영향을 주지 않고, `followUps`와 `checkItems`도 오지 않는다.
 

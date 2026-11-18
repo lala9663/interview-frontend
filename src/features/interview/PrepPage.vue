@@ -28,6 +28,11 @@ const sourceFilter = ref('')
 const regenerateOnly = has('feedback1118')
 const locked = computed(() => liveLocked(interview.value))
 const generating = computed(() => ['PENDING', 'RUNNING'].includes(briefing.value?.status))
+// 무엇을 만드는 중인가: 백엔드가 알려 주는 값(generating)이 먼저, 없으면 방금 누른 버튼. 요약과 질문은 따로 다시 만든다(API 명세 2.6)
+const requested = ref('ALL')
+const part = computed(() => briefing.value?.generating || requested.value)
+const makingSummary = computed(() => generating.value && part.value !== 'QUESTIONS')
+const makingQuestions = computed(() => generating.value && part.value !== 'SUMMARY')
 // 가지(예상 꼬리질문)는 부모 질문 아래에 보여 주므로 목록과 출처 탭에서는 뺀다
 const roots = computed(() => questions.value.filter((q) => !q.hidden && !q.parentQuestionId))
 const visible = computed(() => roots.value.filter((q) => !sourceFilter.value || q.source === sourceFilter.value))
@@ -45,10 +50,11 @@ async function load() {
 onMounted(() => load().catch((e) => ui.fail(e)))
 usePolling(load, { interval: 2000, when: () => generating.value })
 
-async function generate() {
+async function generate(target = 'ALL') {
   try {
-    await interviewApi.generateBriefing(props.id)
-    briefing.value = { ...(briefing.value || {}), status: 'RUNNING' }
+    requested.value = target
+    await interviewApi.generateBriefing(props.id, target)
+    briefing.value = { ...(briefing.value || {}), status: 'RUNNING', generating: target }
   } catch (e) {
     ui.fail(e)
   }
@@ -86,17 +92,17 @@ async function hide(q) {
           <h2 class="h-sec flex items-center gap-2"><Sparkles :size="16" class="text-faint" />사전 리포트</h2>
           <div class="flex items-center gap-2">
             <span v-if="briefing?.generatedAt" class="text-[0.8rem] text-faint">{{ ago(briefing.generatedAt) }} 생성</span>
-            <button class="btn btn-sm btn-ghost" :disabled="generating" @click="generate"><RefreshCw :size="14" :class="{ 'animate-spin': generating }" />다시 만들기</button>
+            <button class="btn btn-sm btn-ghost" :disabled="generating" title="사전 리포트만 다시 만듭니다. 준비된 질문은 그대로 둡니다" @click="generate('SUMMARY')"><RefreshCw :size="14" :class="{ 'animate-spin': makingSummary }" />리포트 다시 만들기</button>
           </div>
         </header>
 
-        <div v-if="generating" class="space-y-3 py-4">
+        <div v-if="makingSummary" class="space-y-3 py-4">
           <p class="flex items-center gap-2 font-semibold text-brand"><RefreshCw :size="16" class="animate-spin" />이력서를 읽고 요약하는 중입니다…</p>
           <div v-for="n in 5" :key="n" class="h-4 animate-pulse rounded bg-sunken" :style="{ width: `${95 - n * 9}%` }" />
         </div>
         <EmptyState v-else-if="!briefing?.summary" title="아직 사전 리포트가 없습니다" hint="이력서와 JD를 읽고 면접관 시점으로 요약합니다. 30초쯤 걸립니다.">
           <template #icon><Sparkles :size="22" /></template>
-          <button class="btn btn-primary" @click="generate"><Sparkles :size="16" />사전 리포트 만들기</button>
+          <button class="btn btn-primary" :disabled="generating" @click="generate('ALL')"><Sparkles :size="16" />사전 리포트 만들기</button>
         </EmptyState>
         <div v-else class="space-y-5 py-4">
           <p class="text-[1.15rem] font-bold leading-snug tracking-tight">{{ briefing.summary.headline }}</p>
@@ -133,12 +139,16 @@ async function hide(q) {
         <header class="flex h-11 items-center justify-between border-b border-line">
           <h2 class="h-sec">준비된 질문 <span class="ml-1 text-[0.9rem] font-semibold text-faint">{{ visible.length }}</span></h2>
           <div class="flex items-center self-end">
-            <button v-if="regenerateOnly" class="btn btn-sm btn-ghost mr-1" :disabled="generating" title="사전 리포트와 질문을 처음부터 다시 만듭니다" @click="generate"><RefreshCw :size="14" :class="{ 'animate-spin': generating }" />질문 전체 다시 만들기</button>
+            <button v-if="regenerateOnly" class="btn btn-sm btn-ghost mr-1" :disabled="generating" title="준비된 질문만 다시 만듭니다. 사전 리포트는 그대로 둡니다" @click="generate('QUESTIONS')"><RefreshCw :size="14" :class="{ 'animate-spin': makingQuestions }" />질문 전체 다시 만들기</button>
             <button class="tab h-9 px-2.5 text-[0.86rem]" :class="{ 'tab-on': sourceFilter === '' }" @click="sourceFilter = ''">전체</button>
             <button v-for="s in sources" :key="s" class="tab h-9 px-2.5 text-[0.86rem]" :class="{ 'tab-on': sourceFilter === s }" @click="sourceFilter = s">{{ labelOf(QUESTION_SOURCE, s) }}</button>
           </div>
         </header>
-        <ol class="flex-1 divide-y divide-line">
+        <div v-if="makingQuestions" class="flex-1 space-y-3 py-4">
+          <p class="flex items-center gap-2 font-semibold text-brand"><RefreshCw :size="16" class="animate-spin" />질문을 다시 만드는 중입니다…</p>
+          <div v-for="n in 6" :key="n" class="h-10 animate-pulse rounded bg-sunken" />
+        </div>
+        <ol v-else class="flex-1 divide-y divide-line">
           <li v-for="(q, i) in visible" :key="q.id" class="group flex gap-3 px-1 py-3">
             <span class="mt-0.5 w-5 shrink-0 text-right text-[0.9rem] font-bold text-faint">{{ i + 1 }}</span>
             <div class="min-w-0 flex-1">
@@ -153,7 +163,7 @@ async function hide(q) {
             </div>
             <button v-if="!regenerateOnly" class="btn btn-ghost btn-icon btn-sm opacity-0 group-hover:opacity-100 focus-visible:opacity-100" aria-label="이 질문 빼기" title="이 질문 빼기" @click="hide(q)"><Trash2 :size="15" /></button>
           </li>
-          <li v-if="!visible.length" class="px-4 py-8 text-center text-[0.9rem] text-sub">사전 리포트를 만들면 질문도 함께 준비됩니다.</li>
+          <li v-if="!visible.length" class="px-4 py-8 text-center text-[0.9rem] text-sub">준비된 질문이 없습니다. 위의 "질문 전체 다시 만들기"로 만듭니다.</li>
         </ol>
         <p v-if="regenerateOnly" class="border-t border-line pt-3 text-[0.82rem] leading-relaxed text-faint">
           {{ locked ? (hasPredicted ? '질문마다 예상 꼬리질문을 미리 만들어 두었습니다. ' : '') + '면접 중에는 녹음과 꼬리질문 제안을 쓰지 않습니다.' : '면접 중에는 답변에 맞춰 꼬리질문을 그 질문 아래에 제안합니다.' }}

@@ -95,7 +95,7 @@ function go(p) {
         <h1 class="h-page">면접자</h1>
         <p class="text-[0.9rem] text-sub">{{ ui.recruitment?.title }} · {{ total }}명</p>
       </div>
-      <!-- 여기서 바로 엑셀을 올린다. 가짜 데이터로 돌 때의 경력 탭만 채용 시스템에서 읽어 오는 시안이라 관리 > 등록으로 보낸다 -->
+      <!-- 관리자만: 여기서 바로 엑셀을 올린다(면접관에게는 보이지 않고 백엔드도 거절한다). 가짜 데이터로 돌 때의 경력 탭만 채용 시스템에서 읽어 오는 시안이라 관리 > 등록으로 보낸다 -->
       <template v-if="auth.isAdmin && has('feedback1118')">
         <button v-if="ui.track !== 'EXPERIENCED' || !mockData" class="btn btn-primary" @click="showUpload = true"><Upload :size="16" />면접자 엑셀 업로드</button>
         <RouterLink v-else :to="{ name: 'admin-setup' }" class="btn">채용 시스템에서 불러오기는 관리 &gt; 등록에서</RouterLink>
