@@ -23,10 +23,10 @@ const FIRST_SHOWN = {
   systemStatus: 4, // 위쪽 줄의 시스템 상태, 관리 > 시스템 상태
   modelSwitch: 4, // 관리 > AI 모델(작업별 모델 바꾸기). 화면 시안: API 명세에 아직 없어 가짜 데이터로 돌 때만 켜진다
   calendar: 4, // 관리 > 일정 달력. 면접 목록 API 의 값만 쓴다
-  // 6주 차
+  // 6 ~ 8주 차: 관리 화면을 한 주에 하나씩(docs/10-roadmap.md 3장)
   operations: 6, // 관리 > 운영 현황
-  quality: 6, // 관리 > AI 품질
-  interviewerStats: 6, // 관리 > 면접관 편차
+  quality: 7, // 관리 > AI 품질
+  interviewerStats: 8, // 관리 > 면접관 편차
 }
 
 /** 이 빌드가 주차별 목업이면 그 주차 이름, 아니면 null */
