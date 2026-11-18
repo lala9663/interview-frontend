@@ -2,13 +2,13 @@
 // 관리 메뉴의 하위 탭. 탭을 더하면 여기와 router/index.js, AppShell.vue의 match에 한 줄씩.
 import { useRoute } from 'vue-router'
 import { Activity, CalendarDays, Cpu, Drama, FileSpreadsheet, Gauge, HeartPulse, Scale } from 'lucide-vue-next'
-import { has } from '@/lib/features.js'
+import { has, mockData } from '@/lib/features.js'
 
 const route = useRoute()
 const tabs = [
   { name: 'admin', label: '운영 현황', icon: Activity, feature: 'operations' },
-  // 자동 매칭을 뺀 화면 시안(feedback1118)에서는 이름이 "등록"이다
-  { name: 'admin-setup', label: has('feedback1118') ? '등록' : '등록 · 매칭', icon: FileSpreadsheet },
+  // 자동 매칭을 뺀 화면 시안(가짜 데이터로 돌 때)에서는 이름이 "등록"이다. 실제 백엔드에는 임시 자동 매칭이 남아 있다
+  { name: 'admin-setup', label: has('feedback1118') && mockData ? '등록' : '등록 · 매칭', icon: FileSpreadsheet },
   { name: 'admin-calendar', label: '일정 달력', icon: CalendarDays, feature: 'calendar' },
   { name: 'admin-quality', label: 'AI 품질', icon: Gauge, feature: 'quality' },
   { name: 'admin-interviewers', label: '면접관 편차', icon: Scale, feature: 'interviewerStats' },

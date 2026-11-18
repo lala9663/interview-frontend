@@ -1,12 +1,13 @@
 <script setup>
 // 면접 후(11/18 회의 반영): 준비된 질문이 도움이 됐는지 면접이 끝난 자리에서 바로 받는다. 나중에 따로 물으면 아무도 답하지 않는다.
-// 화면 시안이다. 저장하는 API 가 명세에 아직 없어 이 화면 안에서만 기억한다(새로 고치면 사라진다).
-import { computed, ref } from 'vue'
+// 사람마다 면접 한 건에 의견 하나를 저장한다(API 명세 2.6 의 question-feedback).
+import { computed, onMounted, ref } from 'vue'
 import { MessageSquareHeart, ThumbsDown, ThumbsUp } from 'lucide-vue-next'
+import { interviewApi } from '@/api/index.js'
 import { useUi } from '@/stores/ui.js'
 import { QUESTION_SOURCE, labelOf } from '@/lib/labels.js'
 
-const props = defineProps({ questions: { type: Array, required: true } })
+const props = defineProps({ interviewId: { type: [String, Number], required: true }, questions: { type: Array, required: true } })
 const ui = useUi()
 
 const OVERALL = [
@@ -18,13 +19,26 @@ const overall = ref(null)
 const votes = ref({}) // 질문 id → 'UP' | 'DOWN'
 const open = ref(false)
 const sent = ref(false)
+const saving = ref(false)
 
 // 면접 전에 준비한 질문만 묻는다(면접 중에 더한 질문과 꼬리질문은 빼고)
 const prepared = computed(() => props.questions.filter((q) => !q.hidden && !q.parentQuestionId && ['RESUME', 'JD', 'BANK'].includes(q.source)))
 const voted = computed(() => Object.keys(votes.value).length)
 
+// 이미 남긴 의견이 있으면 이어서 고친다
+onMounted(async () => {
+  try {
+    const saved = await interviewApi.questionFeedback(props.interviewId)
+    overall.value = saved?.overall ?? null
+    votes.value = Object.fromEntries((saved?.votes || []).map((v) => [v.questionId, v.vote]))
+    sent.value = !!(saved?.overall || saved?.votes?.length)
+  } catch {
+    /* 의견이 없어도 화면은 쓴다 */
+  }
+})
+
 function pick(key) {
-  overall.value = key
+  overall.value = overall.value === key ? null : key
   sent.value = false
 }
 function vote(q, v) {
@@ -34,10 +48,21 @@ function vote(q, v) {
   votes.value = next
   sent.value = false
 }
-function send() {
-  sent.value = true
-  open.value = false
-  ui.toast('의견을 남겼습니다. 다음 질문을 만들 때 참고합니다.', 'ok')
+async function send() {
+  saving.value = true
+  try {
+    await interviewApi.saveQuestionFeedback(props.interviewId, {
+      overall: overall.value,
+      votes: Object.entries(votes.value).map(([questionId, v]) => ({ questionId: Number(questionId), vote: v })),
+    })
+    sent.value = true
+    open.value = false
+    ui.toast('의견을 남겼습니다.', 'ok')
+  } catch (e) {
+    ui.fail(e)
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -51,7 +76,7 @@ function send() {
       <button class="btn btn-sm btn-ghost" :aria-expanded="open" @click="open = !open">{{ open ? '질문별 의견 접기' : `질문별로 남기기${voted ? ` (${voted})` : ''}` }}</button>
       <span class="ml-auto flex items-center gap-2">
         <span v-if="sent" class="text-[0.82rem] font-semibold text-ok">남겼습니다</span>
-        <button class="btn btn-sm btn-primary" :disabled="sent || (!overall && !voted)" @click="send">의견 남기기</button>
+        <button class="btn btn-sm btn-primary" :disabled="saving || sent || (!overall && !voted)" @click="send">{{ saving ? '저장하는 중…' : '의견 남기기' }}</button>
       </span>
     </div>
     <ol v-if="open" class="divide-y divide-line border-t border-line">

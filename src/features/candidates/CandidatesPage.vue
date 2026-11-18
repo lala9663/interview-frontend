@@ -10,7 +10,7 @@ import { candidateApi, recruitmentApi } from '@/api/index.js'
 import { useAuth } from '@/stores/auth.js'
 import { useUi } from '@/stores/ui.js'
 import { APPLICANT_TYPE, INTERVIEW_STATUS, INTERVIEW_TYPE, JOB_STATUS, labelOf } from '@/lib/labels.js'
-import { has } from '@/lib/features.js'
+import { has, mockData } from '@/lib/features.js'
 
 const auth = useAuth()
 const ui = useUi()
@@ -34,15 +34,15 @@ function defaultJobCode() {
 }
 const jobCode = ref(defaultJobCode())
 const status = ref('')
-// 면접자 유형으로 거르기(11/18 회의 반영의 화면 시안. API 명세에 아직 없는 값이라 모의 서버만 거른다)
+// 면접자 유형으로 거르기(API 명세 2.3 의 applicantType)
 const applicantType = ref('')
 const showUpload = ref(false)
 const applicantTypes = computed(() => (ui.track === 'EXPERIENCED' ? ['CAREER', 'PHD', 'CAREER_MASTER'] : ['OPEN', 'SCHOLARSHIP', 'INTERN']))
 const pages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 const statuses = ['SCHEDULED', 'IN_PROGRESS', 'EVALUATING', 'DONE', 'WAITING']
-// 면접 종류 탭: 신입은 PT·인성, 경력은 포트폴리오·직무·인성. "지금 차수" 면접의 종류로 거른다.
+// 면접 종류 탭: 신입도 경력도 직무·인성 두 가지다. "지금 차수" 면접의 종류로 거른다.
 const type = ref('')
-const types = computed(() => (has('feedback1118') ? ['JOB', 'PERSONALITY'] : ui.track === 'EXPERIENCED' ? ['PORTFOLIO', 'JOB', 'PERSONALITY'] : ['PT', 'PERSONALITY']))
+const types = ['JOB', 'PERSONALITY']
 
 async function load() {
   const id = ui.recruitmentId
@@ -95,9 +95,9 @@ function go(p) {
         <h1 class="h-page">면접자</h1>
         <p class="text-[0.9rem] text-sub">{{ ui.recruitment?.title }} · {{ total }}명</p>
       </div>
-      <!-- 화면 시안(feedback1118): 신입은 여기서 바로 엑셀을 올린다. 경력은 채용 시스템에서 읽어 오므로 관리 > 등록으로 보낸다 -->
+      <!-- 여기서 바로 엑셀을 올린다. 가짜 데이터로 돌 때의 경력 탭만 채용 시스템에서 읽어 오는 시안이라 관리 > 등록으로 보낸다 -->
       <template v-if="auth.isAdmin && has('feedback1118')">
-        <button v-if="ui.track !== 'EXPERIENCED'" class="btn btn-primary" @click="showUpload = true"><Upload :size="16" />면접자 엑셀 업로드</button>
+        <button v-if="ui.track !== 'EXPERIENCED' || !mockData" class="btn btn-primary" @click="showUpload = true"><Upload :size="16" />면접자 엑셀 업로드</button>
         <RouterLink v-else :to="{ name: 'admin-setup' }" class="btn">채용 시스템에서 불러오기는 관리 &gt; 등록에서</RouterLink>
       </template>
       <RouterLink v-else-if="auth.isAdmin" :to="{ name: 'admin-setup' }" class="btn">면접자 등록 · 면접관 매칭은 관리에서</RouterLink>

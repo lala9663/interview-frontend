@@ -1,5 +1,5 @@
 <script setup>
-// 시스템 상태의 내용(화면 시안): 서비스 연결 상태와 "지금 요청하면 기다리는 시간".
+// 시스템 상태의 내용(API 명세 2.13): 서비스 연결 상태와 "지금 요청하면 기다리는 시간".
 // 위쪽 줄의 상태 버튼(SystemStatusChip)이 띄우는 창과 관리 > 시스템 상태가 같이 쓴다.
 import { SYSTEM_STATUS, labelOf, toneOf } from '@/lib/labels.js'
 import { hm } from '@/lib/format.js'
@@ -24,7 +24,7 @@ const secs = (s) => (s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60 ? `${s % 60}�
       </ul>
     </div>
 
-    <div>
+    <div v-if="status.waits?.length">
       <p class="label mb-1.5">지금 요청하면 기다리는 시간</p>
       <ul class="divide-y divide-line rounded-md border border-line">
         <li v-for="w in status.waits" :key="w.key" class="flex items-center justify-between gap-3 px-3 py-2">

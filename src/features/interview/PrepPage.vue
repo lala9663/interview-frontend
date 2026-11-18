@@ -26,13 +26,14 @@ const sourceFilter = ref('')
 
 // 11/18 회의 반영: 질문을 하나씩 빼거나 더하지 않고 전체를 다시 만든다. 신입은 질문마다 예상 꼬리질문이 가지로 붙는다.
 const regenerateOnly = has('feedback1118')
-const locked = computed(() => liveLocked(interview.value?.track))
+const locked = computed(() => liveLocked(interview.value))
 const generating = computed(() => ['PENDING', 'RUNNING'].includes(briefing.value?.status))
 // 가지(예상 꼬리질문)는 부모 질문 아래에 보여 주므로 목록과 출처 탭에서는 뺀다
 const roots = computed(() => questions.value.filter((q) => !q.hidden && !q.parentQuestionId))
 const visible = computed(() => roots.value.filter((q) => !sourceFilter.value || q.source === sourceFilter.value))
 const sources = computed(() => [...new Set(roots.value.map((q) => q.source))])
 const childrenOf = (q) => questions.value.filter((x) => !x.hidden && x.parentQuestionId === q.id)
+const hasPredicted = computed(() => questions.value.some((x) => !x.hidden && x.parentQuestionId))
 const canEnter = computed(() => ['SCHEDULED', 'IN_PROGRESS'].includes(interview.value?.status))
 
 async function load() {
@@ -155,7 +156,7 @@ async function hide(q) {
           <li v-if="!visible.length" class="px-4 py-8 text-center text-[0.9rem] text-sub">사전 리포트를 만들면 질문도 함께 준비됩니다.</li>
         </ol>
         <p v-if="regenerateOnly" class="border-t border-line pt-3 text-[0.82rem] leading-relaxed text-faint">
-          {{ locked ? '질문마다 예상 꼬리질문을 미리 만들어 두었습니다. 면접 중에는 녹음과 꼬리질문 제안을 쓰지 않습니다.' : '면접 중에는 답변에 맞춰 꼬리질문을 그 질문 아래에 제안합니다.' }}
+          {{ locked ? (hasPredicted ? '질문마다 예상 꼬리질문을 미리 만들어 두었습니다. ' : '') + '면접 중에는 녹음과 꼬리질문 제안을 쓰지 않습니다.' : '면접 중에는 답변에 맞춰 꼬리질문을 그 질문 아래에 제안합니다.' }}
           질문이 맞지 않으면 전체를 다시 만들어 주세요. 도움이 됐는지는 면접이 끝난 화면에서 남깁니다.
         </p>
         <form v-else class="flex gap-2 border-t border-line pt-3" @submit.prevent="addQuestion">

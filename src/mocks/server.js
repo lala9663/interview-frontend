@@ -3,9 +3,12 @@
 import { ApiError } from '@/api/http.js'
 import * as D from './data.js'
 import { adminRoutes } from './admin.js'
-import { has, liveLocked } from '@/lib/features.js'
+import { has } from '@/lib/features.js'
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+// 신입(대면) 면접은 실시간 기능을 쓰지 않는다(백엔드의 app.live.new-grad-enabled=false 와 같은 동작). 4주 차 목업부터.
+// 풀어서 보려면 VITE_NEW_GRAD_LIVE=on 으로 빌드한다.
+const liveLocked = (track) => has('feedback1118') && track === 'NEW_GRAD' && import.meta.env.VITE_NEW_GRAD_LIVE !== 'on'
 const clone = (x) => JSON.parse(JSON.stringify(x))
 
 // ---- 상태 (새로 고침하면 처음으로 돌아간다) ----
@@ -22,7 +25,8 @@ const db = {
   uploads: [],
   jobs: new Map(),
   bank: clone(D.questionBank),
-  personas: clone(D.personas), // 화면 시안
+  personas: clone(D.personas),
+  questionFeedback: new Map(), // '면접 id:사용자 id' → 의견
   aiModels: { tasks: clone(D.aiModelTasks), history: [] }, // 화면 시안: 작업별 모델과 바꾼 기록
 }
 let seq = 90000
@@ -59,11 +63,11 @@ function interviewView(it) {
   const c = cand(it.candidateId)
   return {
     id: it.id,
-    // applicantType 은 API 명세에 아직 없다(11/18 회의 반영 시안)
     candidate: { id: c.id, name: c.name, applicantNo: c.applicantNo, jobTitle: c.jobTitle, ...(has('feedback1118') ? { applicantType: c.applicantType } : {}) },
     track: c.track, type: it.type, seq: it.seq, mode: it.mode, status: it.status,
     scheduledAt: it.scheduledAt, durationMinutes: it.durationMinutes,
-    ...(has('persona') && personaOf(it) ? { persona: (({ id, name, tone, questionType, followUpType }) => ({ id, name, tone, questionType, followUpType }))(personaOf(it)) } : {}),
+    liveEnabled: !liveLocked(c.track),
+    ...(has('persona') ? { persona: !personaOf(it) ? null : (({ id, name, tone, questionType, followUpType }) => ({ id, name, tone, questionType, followUpType }))(personaOf(it)) } : {}),
     interviewers: it.interviewerIds.map((id) => userRef(id)),
     roomId: it.roomId, roomStatus: it.roomStatus,
     // 신입은 실시간 녹음을 잠가 두어 대화 기록이 없고, 그래서 보고서도 없다
@@ -202,7 +206,7 @@ const routes = [
   ['GET', '/recruitments/:id/candidates', ([id], { params }) => {
     let rows = db.candidates.filter((c) => c.recruitmentId === Number(id))
     if (params?.jobCode) rows = rows.filter((c) => c.jobCode === params.jobCode)
-    if (params?.applicantType) rows = rows.filter((c) => c.applicantType === params.applicantType) // 화면 시안: API 명세에 아직 없는 조건
+    if (params?.applicantType) rows = rows.filter((c) => c.applicantType === params.applicantType)
     if (params?.q) rows = rows.filter((c) => (c.name + c.applicantNo).includes(params.q))
     let all = rows.map(candidateRow)
     if (params?.status) all = all.filter((c) => c.currentStage?.status === params.status)
@@ -343,7 +347,10 @@ const routes = [
     })
     return roomView(it)
   }],
-  ['POST', '/rooms/:id/ticket', ([id]) => ({ ticket: 'mock-ticket', agentWsUrl: `mock://rooms/${id}`, expiresIn: 300 })],
+  ['POST', '/rooms/:id/ticket', ([id]) => {
+    if (liveLocked(cand(byRoom(id).candidateId).track)) throw new ApiError(409, 'LIVE_DISABLED', '실시간 기능을 쓰지 않는 면접입니다.')
+    return { ticket: 'mock-ticket', agentWsUrl: `mock://rooms/${id}`, expiresIn: 300 }
+  }],
   ['GET', '/rooms/:id/utterances', ([id], { params }) => ({
     items: utterancesOf(byRoom(id)).filter((u) => u.seq > Number(params?.afterSeq || 0)),
   })],
@@ -375,6 +382,7 @@ const routes = [
     return v
   }],
   ['GET', '/interviews/:id/ai-evaluation', ([id]) => {
+    if (has('feedback1118') && me().role !== 'ADMIN') throw new ApiError(403, 'FORBIDDEN', 'AI 참고 평가는 채용 담당자만 볼 수 있습니다.')
     const it = intv(id)
     const track = cand(it.candidateId).track
     return it.roomStatus === 'ENDED' && !liveLocked(track) ? D.aiEvaluationFor(track) : { status: null, scores: [] }
@@ -400,31 +408,31 @@ const routes = [
   ['GET', '/interviews/:id/jobs', ([id]) => ({ items: [...db.jobs.values()].filter((j) => j.interviewId === Number(id)) })],
   ['GET', '/ai-jobs/:id', ([id]) => db.jobs.get(Number(id))],
 
-  // ---- 화면 시안: 면접 페르소나, 시스템 상태 (API 명세에 아직 없다) ----
+  // ---- 면접 페르소나(API 명세 2.12), 시스템 상태(2.13) ----
   ['GET', '/personas', () => ({ items: db.personas })],
   ['POST', '/admin/personas', (_, { body }) => {
     const name = (body.name || '').trim()
     if (!name) throw new ApiError(400, 'PERSONA_NAME_REQUIRED', '페르소나 이름을 적어 주세요.')
     if (db.personas.some((x) => x.name === name)) throw new ApiError(409, 'PERSONA_NAME_TAKEN', '같은 이름의 페르소나가 이미 있습니다.')
-    const p = { id: `CUSTOM-${nextId()}`, ...personaFields(body), name, recommended: false, enabled: true, custom: true }
+    const p = { id: nextId(), ...personaFields(body), name, recommended: false, enabled: true, custom: true }
     db.personas.push(p)
     return p
   }],
   ['DELETE', '/admin/personas/:id', ([id]) => {
-    const p = db.personas.find((x) => x.id === id)
+    const p = db.personas.find((x) => x.id === Number(id))
     if (!p) throw new ApiError(404, 'PERSONA_NOT_FOUND', '페르소나를 찾을 수 없습니다.')
     if (!p.custom) throw new ApiError(409, 'PERSONA_BUILT_IN', '기본 페르소나는 지울 수 없습니다. 사용을 꺼 주세요.')
     if (p.enabled && personasOn().length === 1) throw new ApiError(409, 'PERSONA_LAST_ONE', '페르소나는 하나 이상 사용해야 합니다.')
-    db.personas = db.personas.filter((x) => x.id !== id)
+    db.personas = db.personas.filter((x) => x.id !== Number(id))
     return null
   }],
   ['PATCH', '/admin/personas/:id', ([id], { body }) => {
-    const p = db.personas.find((x) => x.id === id)
+    const p = db.personas.find((x) => x.id === Number(id))
     if (!p) throw new ApiError(404, 'PERSONA_NOT_FOUND', '페르소나를 찾을 수 없습니다.')
     if (body.name !== undefined) {
       const name = (body.name || '').trim()
       if (!name) throw new ApiError(400, 'PERSONA_NAME_REQUIRED', '페르소나 이름을 적어 주세요.')
-      if (db.personas.some((x) => x.id !== id && x.name === name)) throw new ApiError(409, 'PERSONA_NAME_TAKEN', '같은 이름의 페르소나가 이미 있습니다.')
+      if (db.personas.some((x) => x.id !== Number(id) && x.name === name)) throw new ApiError(409, 'PERSONA_NAME_TAKEN', '같은 이름의 페르소나가 이미 있습니다.')
       Object.assign(p, personaFields({ ...p, ...body }), { name })
     }
     if (body.enabled === false && p.enabled && personasOn().length === 1) throw new ApiError(409, 'PERSONA_LAST_ONE', '페르소나는 하나 이상 사용해야 합니다.')
@@ -439,12 +447,27 @@ const routes = [
     if (it.roomStatus === 'LIVE' || it.roomStatus === 'ENDED') throw new ApiError(409, 'PERSONA_LOCKED', '면접이 시작된 뒤에는 페르소나를 바꿀 수 없습니다.')
     const p = db.personas.find((x) => x.id === body.personaId && x.enabled)
     if (!p) throw new ApiError(400, 'PERSONA_NOT_AVAILABLE', '쓸 수 없는 페르소나입니다.')
+    const before = personaOf(it)?.id
     it.personaId = p.id
-    applyPersona(it, questionsOf(it))
+    // 적용되는 페르소나가 바뀌었고 사전 리포트가 이미 있으면 다시 만든다(API 명세 2.5). 끝나면 질문 표현이 새 페르소나로 바뀐다
+    if (before !== p.id && it.briefingStatus === 'SUCCEEDED') {
+      it.briefingStatus = 'RUNNING'
+      startJob('BRIEFING', it.id, 1800, () => {
+        it.briefingStatus = 'SUCCEEDED'
+        applyPersona(it, questionsOf(it))
+      })
+    } else applyPersona(it, questionsOf(it))
     return interviewView(it)
   }],
   ['GET', '/system/status', () => D.systemStatus()],
-  // 화면 시안: 관리 > AI 모델
+  // 질문 피드백(API 명세 2.6): 사람마다 면접 한 건에 하나
+  ['GET', '/interviews/:id/question-feedback', ([id]) => db.questionFeedback.get(`${id}:${me().id}`) || { interviewId: Number(id), overall: null, votes: [], updatedAt: null }],
+  ['PUT', '/interviews/:id/question-feedback', ([id], { body }) => {
+    const v = { interviewId: Number(id), overall: body.overall ?? null, votes: body.votes || [], updatedAt: new Date().toISOString() }
+    db.questionFeedback.set(`${id}:${me().id}`, v)
+    return v
+  }],
+  // 화면 시안: 관리 > AI 모델(API 명세에 아직 없다. 명세 2.14)
   ['GET', '/admin/models', () => ({ models: D.aiModels, tasks: db.aiModels.tasks, history: db.aiModels.history })],
   ['PUT', '/admin/models/tasks/:key', ([key], { body }) => {
     const task = db.aiModels.tasks.find((t) => t.key === key)
@@ -479,7 +502,7 @@ const routes = [
   ...adminRoutes({ db, cand, interviewView }),
   ['GET', '/question-bank', (_, { params }) => ({
     items: db.bank.filter((q) => (!params?.jobCode || q.jobCode === params.jobCode) && (!params?.category || q.category === params.category) && (!params?.q || q.text.includes(params.q))
-      && (has('experienced') || !['JOB', 'PORTFOLIO'].includes(q.interviewType))),
+      && (has('experienced') || !q._exp)), // 경력용 질문은 경력 채용이 보이는 주차부터
   })],
   ['POST', '/question-bank', (_, { body }) => {
     const q = { id: nextId(), ...body }

@@ -1,9 +1,9 @@
 <script setup>
-// 관리 > 면접 페르소나(관리자 전용, 화면 시안): 면접관에게 추천할 페르소나와 사용 여부를 정하고, 새 페르소나를 더하거나 고친다.
+// 관리 > 면접 페르소나(관리자 전용): 면접관에게 추천할 페르소나와 사용 여부를 정하고, 새 페르소나를 더하거나 고친다.
 // 정해진 칸(질문 유형, 꼬리질문 유형, 어울리는 때, 지키는 것)으로만 받는다. 자유로운 글 한 덩어리로 받지 않는다.
 // 직접 만든 페르소나만 지울 수 있고, 기본 페르소나는 사용을 끈다.
 // 페르소나는 준비된 질문과 꼬리질문의 표현만 바꾼다. 평가 항목과 금지 질문 검사는 모든 페르소나에서 같다.
-// API 명세에 아직 없다(api/index.js 의 personaApi).
+// API 명세 2.12(api/index.js 의 personaApi).
 import { computed, onMounted, ref } from 'vue'
 import { Drama, Info, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import AdminTabs from './AdminTabs.vue'
@@ -52,10 +52,10 @@ const EMPTY = { name: '', description: '', questionType: '', followUpType: '', f
 const form = ref(null) // 열려 있는 입력 창의 값. id 가 있으면 고치기
 const removing = ref(null)
 const saving = ref(false)
-const canSave = computed(() => form.value && ['name', 'description', 'questionType', 'followUpType'].every((k) => form.value[k].trim()))
+const canSave = computed(() => form.value && ['name', 'description', 'questionType', 'followUpType'].every((k) => (form.value[k] || '').trim()))
 
 const openNew = () => (form.value = { ...EMPTY })
-const openEdit = (p) => (form.value = { id: p.id, name: p.name, description: p.description, questionType: p.questionType, followUpType: p.followUpType, fit: p.fit || '', guard: p.guard || '', tone: p.tone })
+const openEdit = (p) => (form.value = { id: p.id, name: p.name || '', description: p.description || '', questionType: p.questionType || '', followUpType: p.followUpType || '', fit: p.fit || '', guard: p.guard || '', tone: p.tone || 'neutral' })
 async function save() {
   saving.value = true
   try {
@@ -205,7 +205,7 @@ const setEnabled = (p, v) => change(p, { enabled: v }, v ? `${p.name}을(를) �
     </Modal>
 
     <Modal v-if="removing" :title="`${removing.name}을(를) 지울까요?`" @close="removing = null">
-      <p class="leading-relaxed text-sub">지우면 면접관의 선택 화면에서 사라집니다. 이 페르소나로 이미 시작한 면접은 그대로 남습니다.</p>
+      <p class="leading-relaxed text-sub">지우면 면접관의 선택 화면에서 사라집니다. 이 페르소나를 골랐던 면접은 기본 선택을 따릅니다.</p>
       <template #footer>
         <button class="btn" :disabled="saving" @click="removing = null">취소</button>
         <button class="btn btn-danger" :disabled="saving" @click="remove">지우기</button>

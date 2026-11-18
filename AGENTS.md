@@ -29,14 +29,14 @@ src/
   api/index.js       엔드포인트 함수(경로 문자열은 여기에만)
   mocks/             모의 백엔드(server.js, 관리자 집계는 admin.js), 모의 Agent 소켓(socket.js), 가상 데이터(data.js: 신입·경력 대본, 페르소나, 시스템 상태 값 포함), 목업 재생 상태(demo.js), 주차별 목업의 변경 요약(changelog.js)
   stores/            pinia: auth(로그인), ui(테마·신입/경력 탭과 채용 선택·토스트)
-  lib/               labels.js(열거형→한국어·색), format.js(시각), poll.js(작업 대기), features.js(주차별 목업에서 켤 기능, 가짜 데이터로 돌 때만 켜는 화면 시안 MOCKUP_ONLY, 신입 면접의 실시간 기능 잠금 liveLocked)
-  components/        여러 화면이 같이 쓰는 것(AppShell, InterviewHeader, PhaseSteps, StageTrack, Modal, ToggleSwitch(켜고 끄는 스위치), SystemStatusChip(위쪽 줄의 시스템 상태 버튼), SystemStatusPanel(그 내용) …)
+  lib/               labels.js(열거형→한국어·색), format.js(시각), poll.js(작업 대기), features.js(주차별 목업에서 켤 기능, 가짜 데이터로 돌 때만 켜는 화면 시안 MOCKUP_ONLY(지금은 modelSwitch 하나), 가짜 데이터로 도는 빌드인지 mockData, 면접의 liveEnabled 로 실시간 기능 잠금을 판단하는 liveLocked)
+  components/        여러 화면이 같이 쓰는 것(AppShell, InterviewHeader, PhaseSteps, StageTrack, Modal, UploadDialog(면접자 엑셀 업로드 창, 여러 파일), ToggleSwitch(켜고 끄는 스위치), SystemStatusChip(위쪽 줄의 시스템 상태 버튼), SystemStatusPanel(그 내용) …)
   features/<기능>/   화면. 한 기능의 파일은 그 폴더 안에만 둔다
     auth today candidates interview(면접 전) room(면접 중) review(면접 후) pipeline bank admin(관리자 전용)
     interview/       PrepPage, PersonaPicker(페르소나 선택)
     room/            RoomPage(배치 두 가지: docs/realtime-room.md), QuestionTreePane(질문과 꼬리질문 나무), CandidateBrief(지원자 요약 탭), TranscriptPane, QuestionPane·AssistPane(feedback1118이 꺼졌을 때의 배치)
     review/          ReviewPage, ReportView, MyEvaluationPanel, AskedQuestionsPanel, QuestionFeedback(준비된 질문 피드백)
-    admin/           AdminTabs(하위 탭), OperationsPage, SetupPage(등록·매칭), CalendarPage(일정 달력), QualityPage, InterviewersPage, PersonaPage(면접 페르소나), ModelPage(AI 모델), SystemStatusPage(시스템 상태)
+    admin/           AdminTabs(하위 탭), OperationsPage, SetupPage(등록·매칭), CalendarPage(일정 달력), QualityPage, InterviewersPage, PersonaPage(면접 페르소나: 추천·사용 여부, 더하기·고치기·지우기), ModelPage(AI 모델. API 명세에 아직 없는 화면 시안), SystemStatusPage(시스템 상태)
   router/index.js    라우트 표
   styles/main.css    색 토큰(CSS 변수)과 공용 클래스(.btn .card .badge .input …)
 public/audio/pcm16-worklet.js   마이크 → 16kHz PCM16 (AudioWorklet)
@@ -77,7 +77,7 @@ docs/                문서. docs/contract/api-contract.md가 API 명세 복사�
 - 커밋 메시지(= PR 제목)는 `<영역>: <무엇을 왜>` 한 줄, 한국어. 예: `speaker: 되묻기 구간 규칙 추가`. 영역은 기능 폴더나 패키지 이름이다. API 명세를 바꾸면 앞에 `[API 변경]`을 붙인다. `dev`에는 스쿼시로 합치므로 PR 제목이 그대로 커밋 한 줄이 된다.
 - 리뷰는 1명, 영역이 다른 사람이 본다. API 명세를 바꾸는 PR은 세 명 모두 확인한다.
 - 덜 끝난 화면은 라우트·메뉴에 연결하지 않거나 `import.meta.env.VITE_FEATURE_<이름> === 'true'`로 가린 채 합친다.
-  - 이것은 `lib/features.js`(규칙 13)와 다르다. `VITE_FEATURE_*`는 **아직 못 쓰는 기능**을 모든 빌드에서 숨기는 것이고, `features.js`는 **다 만든 기능**을 주차별 목업에서만 그 주차까지 숨기는 것이다. 덜 끝난 기능을 `features.js`로 가리지 않는다(개발 서버와 배포에서는 그대로 보인다).
+  - 이것은 `lib/features.js`(규칙 13)와 다르다. `VITE_FEATURE_*`는 **아직 못 쓰는 기능**을 모든 빌드에서 숨기는 것이고, `features.js`는 **다 만든 기능**을 주차별 목업에서만 그 주차까지 숨기는 것이다. 덜 끝난 기능을 `features.js`로 가리지 않는다(개발 서버와 배포에서는 그대로 보인다). `features.js`의 `MOCKUP_ONLY`는 API 명세에 아직 없는 화면 시안만 두는 곳이고(지금은 `modelSwitch` 하나), 거기에 든 것은 가짜 데이터로 도는 빌드에서만 켜진다.
 - 작업 중에 범위 밖의 아이디어나 개선점이 나오면 그 자리에서 만들지 않고 세 레포 공통 문서의 `09-backlog.md`(할 목록)에 적는다. 적는 법은 그 문서 맨 위에 있다.
 - 여러 사람이 동시에 건드리기 쉬운 파일: `router/index.js`, `api/index.js`, `mocks/server.js`, `lib/labels.js`, `components/AppShell.vue`. 여기는 **한 줄 추가** 위주로 고치고, 정렬·포맷 바꾸기 같은 무관한 변경을 섞지 않는다.
 - API 명세를 바꿀 때: API 명세 네 개(원본과 세 레포의 복사본)를 같은 날 같은 내용으로, 문서만 담은 PR로 먼저 올린다(제목에 `[API 변경]`, 세 명 모두 확인). 코드는 그 뒤에 레포마다 따로 올리고, 같은 날이 아니어도 된다(skill `change-api-contract`).

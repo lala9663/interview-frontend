@@ -1,6 +1,6 @@
 <script setup>
 // 면접자 상세: 면접 진행(차수), 인적 사항·이력서(블라인드 제외본), 면접 등록.
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, EyeOff, Plus } from 'lucide-vue-next'
 import StageTrack from '@/components/StageTrack.vue'
@@ -19,11 +19,11 @@ const router = useRouter()
 const c = ref(null)
 const adding = ref(false)
 const form = ref({ type: 'JOB', mode: 'ONLINE', scheduledAt: '', durationMinutes: 60 })
-// 등록할 수 있는 면접 종류는 그 면접자의 채용 구분을 따른다: 신입은 PT·인성(대면), 경력은 포트폴리오·직무·인성(화상)
-const typeChoices = computed(() => (has('feedback1118') ? ['JOB', 'PERSONALITY'] : c.value?.track === 'EXPERIENCED' ? ['PORTFOLIO', 'JOB', 'PERSONALITY'] : ['PT', 'PERSONALITY']))
+// 등록할 수 있는 면접 종류는 신입도 경력도 직무·인성 두 가지다. 신입은 대면 30분, 경력은 화상 60분을 기본값으로 둔다.
+const typeChoices = ['JOB', 'PERSONALITY']
 function openAdd() {
   const exp = c.value?.track === 'EXPERIENCED'
-  form.value = { type: typeChoices.value[0], mode: exp ? 'ONLINE' : 'OFFLINE', scheduledAt: '', durationMinutes: exp ? 60 : 30 }
+  form.value = { type: typeChoices[0], mode: exp ? 'ONLINE' : 'OFFLINE', scheduledAt: '', durationMinutes: exp ? 60 : 30 }
   adding.value = true
 }
 

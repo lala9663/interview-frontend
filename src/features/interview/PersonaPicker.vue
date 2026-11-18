@@ -1,7 +1,7 @@
 <script setup>
-// 면접 전(화면 시안): 면접관이 이 면접의 페르소나(진행 방식)를 고른다. 고르면 준비된 질문의 표현이 그에 맞게 바뀐다.
+// 면접 전: 면접관이 이 면접의 페르소나(진행 방식)를 고른다. 고르면 준비된 질문의 표현이 그에 맞게 바뀐다.
 // 추천으로 켠 것은 카드로, 나머지는 작은 버튼으로 보인다(관리 > 면접 페르소나에서 정한다). 면접이 시작되면 바꿀 수 없다.
-// API 명세에 아직 없다(api/index.js 의 personaApi).
+// API 명세 2.5, 2.12(api/index.js 의 personaApi). 사전 리포트가 이미 있으면 백엔드가 새 페르소나로 다시 만든다.
 import { computed, onMounted, ref } from 'vue'
 import { Drama, Lock } from 'lucide-vue-next'
 import { personaApi } from '@/api/index.js'
@@ -80,7 +80,7 @@ async function pick(p) {
         <span class="mr-1 text-[0.82rem] text-faint">{{ cards.length ? '다른 페르소나' : '페르소나' }}</span>
         <button v-for="p in others" :key="p.id" class="btn btn-sm" :class="p.id === currentId ? 'border-brand text-brand' : ''" role="radio" :aria-checked="p.id === currentId" :disabled="busy" :title="p.description" @click="pick(p)">{{ p.name }}</button>
       </div>
-      <p v-if="current" class="text-[0.82rem] leading-snug text-faint"><b class="font-semibold text-sub">{{ current.name }}</b> · {{ current.fit }}에 맞습니다. {{ current.guard }}</p>
+      <p v-if="current?.fit || current?.guard" class="text-[0.82rem] leading-snug text-faint"><b class="font-semibold text-sub">{{ current.name }}</b><template v-if="current.fit"> · {{ current.fit }}에 맞습니다.</template> {{ current.guard }}</p>
     </div>
   </section>
 </template>

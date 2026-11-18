@@ -1,5 +1,5 @@
 <script setup>
-// 한 면접자의 면접 차수들을 가로 진행 표시로 그린다(경력: 포트폴리오 → 직무 → 인성).
+// 한 면접자의 면접 차수들을 가로 진행 표시로 그린다(직무 → 인성).
 import { Check } from 'lucide-vue-next'
 import { INTERVIEW_STATUS, INTERVIEW_TYPE, labelOf } from '@/lib/labels.js'
 import { mdhm } from '@/lib/format.js'

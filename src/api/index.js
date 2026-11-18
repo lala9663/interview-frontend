@@ -60,6 +60,8 @@ export const interviewApi = {
   reportVersions: (id) => http.get(`/interviews/${id}/report/versions`),
   regenerateReport: (id) => http.post(`/interviews/${id}/report/regenerate`),
   jobs: (id) => http.get(`/interviews/${id}/jobs`),
+  questionFeedback: (id) => http.get(`/interviews/${id}/question-feedback`),
+  saveQuestionFeedback: (id, body) => http.put(`/interviews/${id}/question-feedback`, body), // { overall, votes[{ questionId, vote }] }
 }
 
 export const roomApi = {
@@ -80,8 +82,7 @@ export const adminApi = {
   interviewerStats: (recruitmentId) => http.get('/admin/interviewer-stats', { recruitmentId }),
 }
 
-// 화면 시안(2026-11-18): 아래 두 묶음은 API 명세에 아직 없다. 모의 서버(mocks/server.js)만 답한다.
-// 실제로 만들 때는 API 변경 절차를 먼저 밟고 경로와 모양을 명세에 맞춘다.
+// 면접 페르소나(API 명세 2.12)
 export const personaApi = {
   list: () => http.get('/personas'),
   update: (id, body) => http.patch(`/admin/personas/${id}`, body), // { recommended?, enabled?, name?, description?, … } ADMIN 전용
@@ -89,9 +90,11 @@ export const personaApi = {
   remove: (id) => http.del(`/admin/personas/${id}`), // 직접 만든 것만 지울 수 있다. ADMIN 전용
   choose: (interviewId, personaId) => http.put(`/interviews/${interviewId}/persona`, { personaId }),
 }
+// 시스템 상태(API 명세 2.13)
 export const systemApi = {
   status: () => http.get('/system/status'),
 }
+// 화면 시안: API 명세에 아직 없다(명세 2.14). 모의 서버(mocks/server.js)만 답한다.
 export const modelApi = {
   get: () => http.get('/admin/models'), // { models, tasks, history } ADMIN 전용
   assign: (taskKey, modelId) => http.put(`/admin/models/tasks/${taskKey}`, { modelId }),

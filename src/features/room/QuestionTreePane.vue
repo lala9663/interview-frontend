@@ -134,7 +134,7 @@ function add() {
 
     <div v-if="!readonly" class="flex shrink-0 items-center gap-3 border-t border-line px-4 py-2">
       <p class="min-w-0 flex-1 truncate text-[0.78rem] text-faint">
-        <template v-if="locked">질문을 누르면 "물었음"으로 표시합니다. 가지는 면접 전에 만든 예상 꼬리질문입니다.</template>
+        <template v-if="locked">질문을 누르면 "물었음"으로 표시합니다.<template v-if="roots.some((n) => n.branches.length)"> 가지는 면접 전에 만든 예상 꼬리질문입니다.</template></template>
         <template v-else>질문은 어느 순서로 물어도 됩니다. 꼬리질문은 방금 물은 질문 아래에 붙습니다. 누르거나 숫자 키 <span class="kbd">1</span>~<span class="kbd">3</span>, 또는 말로 물으면 채택됩니다.</template>
       </p>
       <form class="flex w-[280px] shrink-0 gap-1.5" @submit.prevent="add">

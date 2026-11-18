@@ -26,7 +26,11 @@ const selected = ref(todayKey)
 
 async function load() {
   const id = ui.recruitmentId
-  if (!id) return
+  if (!id) {
+    interviews.value = []
+    loading.value = false
+    return
+  }
   loading.value = true
   const rows = await fetchAll((p) => interviewApi.list({ recruitmentId: id, ...p }))
   if (id !== ui.recruitmentId) return // 그사이 탭을 바꿨다

@@ -1,7 +1,7 @@
 <script setup>
-// 관리 > 시스템 상태(관리자 전용, 화면 시안): 서비스 연결 상태, 예상 대기 시간, 일별 면접 세션, 분석 작업 대기열.
+// 관리 > 시스템 상태(관리자 전용): 서비스 연결 상태, 예상 대기 시간, 일별 면접 세션, 분석 작업 대기열.
 // 면접관은 위쪽 줄의 상태 버튼으로 앞의 두 가지를 본다(components/SystemStatusChip.vue).
-// API 명세에 아직 없다(api/index.js 의 systemApi).
+// API 명세 2.13(api/index.js 의 systemApi).
 import { computed, onMounted, ref } from 'vue'
 import { BarChart3, HeartPulse, ListOrdered } from 'lucide-vue-next'
 import AdminTabs from './AdminTabs.vue'

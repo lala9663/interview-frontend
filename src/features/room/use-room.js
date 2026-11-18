@@ -69,8 +69,12 @@ export function useRoom(interviewId) {
           }
         },
       })
-    } catch {
-      scheduleReconnect()
+    } catch (e) {
+      // 다시 해도 같은 답이 오는 오류(권한 없음 403, 실시간 기능을 쓰지 않는 면접·끝난 방 409)면 다시 붙지 않고 알린다
+      if (e?.status === 403 || e?.status === 409) {
+        connection.value = 'closed'
+        applyEvent(state, { type: 'error', code: e.code || 'TICKET_REFUSED', message: e.message || '면접 방에 연결할 수 없습니다.' })
+      } else scheduleReconnect()
     }
   }
 
@@ -114,7 +118,9 @@ export function useRoom(interviewId) {
     const asked = !q.asked
     q.asked = asked
     // 손으로 표시한 질문도 "언제 물었는지"를 남긴다: 그 뒤에 나온 꼬리질문이 이 질문 아래에 붙는다(room-state.js questionTree)
-    q.askedAtSeq = asked ? lastSeq(state) : null
+    // 아직 받아 적은 말이 없으면(실시간 기능을 쓰지 않는 면접 포함) 누른 순서가 남도록 지금까지의 가장 큰 값보다 하나 크게 둔다
+    const latest = state.questions.reduce((m, x) => Math.max(m, x.askedAtSeq || 0), 0)
+    q.askedAtSeq = asked ? lastSeq(state) || latest + 1 : null
     if (asked) send({ type: 'question.asked', questionId: q.id })
     await interviewApi.patchQuestion(q.id, { asked })
   }

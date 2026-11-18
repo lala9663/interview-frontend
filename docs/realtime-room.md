@@ -10,11 +10,11 @@
 
 | | `feedback1118`이 켜졌을 때 | `feedback1118`이 꺼졌을 때 |
 | --- | --- | --- |
-| 어느 빌드 | `npm run dev`, 4주 차 이후 목업 | `npm run dev:api`, 배포 빌드, 3주 차 목업 |
+| 어느 빌드 | `npm run dev`, `npm run dev:api`, 배포 빌드, 4주 차 이후 목업 | 3주 차 목업 |
 | 왼쪽 | 지원자 요약(`CandidateBrief.vue`: 요약·확인할 점·이력 탭)과 내 메모 | 지원자 요약(접는 한 덩어리)과 질문 목록(`QuestionPane.vue`) |
 | 가운데 | 질문과 꼬리질문 나무(`QuestionTreePane.vue`), 아래에 "방금 들은 말" 한 줄 | 대화(`TranscriptPane.vue`) |
 | 오른쪽 | 대화(`TranscriptPane.vue`). 접혀 있고 "대화 펼치기"로 연다 | 꼬리질문·메모(`AssistPane.vue`) |
-| 신입(대면) 면접 | 실시간 기능 잠금(아래 "실시간 기능이 잠긴 면접") | 잠그지 않는다 |
+| 신입(대면) 면접 | 면접의 `liveEnabled`가 `false`면 실시간 기능 잠금(아래 "실시간 기능이 잠긴 면접") | 모의 서버가 `liveEnabled: true`를 줘 잠기지 않는다 |
 
 스위치가 어느 빌드에서 켜지는지는 [setup.md](setup.md)의 "가짜 데이터로 돌 때만 켜지는 화면".
 
@@ -53,15 +53,20 @@
 
 ## 실시간 기능이 잠긴 면접 (신입 대면)
 
-`liveLocked(track)`(`lib/features.js`)가 참이면 그 방은 질문 화면으로만 쓴다. `feedback1118`이 켜져 있고 면접자 트랙이 신입(`NEW_GRAD`)일 때다. 빌드 환경변수 `VITE_NEW_GRAD_LIVE=on`이면 풀린다.
+`liveLocked(interview)`(`lib/features.js`)가 참이면 그 방은 질문 화면으로만 쓴다. 면접 응답(`GET /interviews/{id}`)의 `liveEnabled`가 `false`일 때다(API 명세 2.5). 화면은 트랙이나 스위치, 환경변수를 보지 않는다.
 
-- "면접 시작"은 `POST /rooms/{id}/start`만 부른다. 입장권을 받지 않고, Agent에 붙지 않고, 마이크를 켜지 않는다(`goLive`).
+- 실제 백엔드에 붙으면 백엔드가 값을 정한다. 명세 2.5: 신입(대면) 면접은 기본이 `false`이고 백엔드 설정으로 연다.
+- 가짜 데이터에서는 모의 서버(`mocks/server.js`의 `liveLocked`)가 정한다: `feedback1118`이 켜져 있고(4주 차 이후 목업, `npm run dev`) 면접자 트랙이 신입(`NEW_GRAD`)이면 `false`. 빌드 환경변수 `VITE_NEW_GRAD_LIVE=on`이면 `true`로 준다.
+
+잠긴 방에서 달라지는 것:
+
+- "면접 시작"은 `POST /rooms/{id}/start`만 부른다. 입장권을 받지 않고, Agent에 붙지 않고, 마이크를 켜지 않는다(`goLive`). 이런 면접에 입장권을 요청하면 백엔드는 `409 LIVE_DISABLED`로 답한다(API 명세 2.7).
 - 위쪽 줄에 화자 전환, 연결 표시, 마이크 버튼, "대화 펼치기"가 없다. "실시간 기록 잠김" 배지와 "면접 종료"만 있다.
 - 가운데 나무에는 준비된 질문과, 면접 전에 만든 예상 꼬리질문(부모가 있는 `FOLLOW_UP` 질문, `parentQuestionId`)이 가지로 보인다. "꼬리질문 지금 만들기" 버튼은 없다. 물은 질문은 눌러서 표시한다.
 - 대화 칸과 "방금 들은 말" 줄, 노란 안내 줄이 나오지 않는다. 숫자 키 `1`~`3`과 `M`도 동작하지 않는다.
 - 메모 자동 저장과 "면접 종료"(`POST /rooms/{id}/end`)는 같다. 종료 확인 창은 보고서를 만들지 않는다고 알린다. 면접 후 화면에는 보고서 대신 "이 면접은 보고서를 만들지 않습니다"가 나오고, AI 참고 평가·대화 기록 탭이 없다.
 
-잠금 값은 프론트의 빌드 설정으로만 정한다. API 명세에는 없다([open-questions.md](open-questions.md)).
+예상 꼬리질문의 글은 Agent가 만들어야 하는데 아직 주지 않는다(API 명세 4.1). 그때까지 실제 백엔드에 붙으면 받은 예상 꼬리질문이 없어 가지가 보이지 않는다([open-questions.md](open-questions.md)).
 
 ## 끊겼을 때
 
@@ -116,7 +121,7 @@ Whisper는 화자를 나누지 못한다. 화면이 하는 일은 세 가지다.
 | 확인할 점 | 확인할 점마다 근거가 된 문장과 그것을 확인하는 준비된 질문. 질문을 누르면 가운데 칸의 그 질문으로 가고, 그 질문을 물었으면 체크된다. 앞 차수에서 넘어온 확인점이 있으면 맨 위에 보인다 |
 | 이력 | 기간순 이력, 요약과 질문에서 제외한 항목(블라인드) |
 
-- 근거 문장과 질문 연결은 사전 리포트의 `summary.checkItems`, 앞 차수 확인점은 `previousRoundChecks`에서 읽는다. 둘 다 API 명세에 없는 값이다([open-questions.md](open-questions.md)). `checkItems`가 없으면 글만 있는 `summary.checkPoints`를 보여 준다.
+- 근거 문장과 질문 연결은 사전 리포트의 `summary.checkItems`, 앞 차수 확인점은 `previousRoundChecks`에서 읽는다(둘 다 API 명세 2.6). `checkItems`는 선택 항목이고 Agent가 아직 주지 않는다([open-questions.md](open-questions.md)). `checkItems`가 없으면 글만 있는 `summary.checkPoints`를 보여 준다. `previousRoundChecks`는 백엔드가 채운다.
 - 사전 리포트의 요약이 없으면 요약 칸 없이 메모만 나온다.
 
 ## 대화와 "방금 들은 말" (`feedback1118`이 켜졌을 때)
@@ -153,4 +158,4 @@ Whisper는 화자를 나누지 못한다. 화면이 하는 일은 세 가지다.
 `mocks/socket.js`가 `mocks/data.js`의 대본을 재생한다. 방의 면접자 트랙에 따라 신입은 `liveScript`, 경력은 `liveScriptExperienced`(화상 직무 면접)다(`scriptFor`). 마이크 권한이 없어도(또는 막힌 환경에서도) 대본은 흐른다. 실제 Agent와 다른 점: 오디오 내용을 듣지 않는다, 지연이 일정하다.
 
 - 경력 대본에는 꼬리질문 후보를 말로 묻는 장면과, 준비한 순서와 다르게 묻는 장면(질문 4를 질문 3보다 먼저)이 있다. 나무에서 가지가 제자리에 붙는지 볼 때 쓴다.
-- 실시간 기능이 잠긴 면접(신입)은 소켓에 붙지 않으므로 대본이 돌지 않는다. 모의 서버가 그 면접의 질문에 예상 꼬리질문을 3개씩 붙여서 준다(`data.js`의 `questionsFor`에 `predicted`).
+- 실시간 기능이 잠긴 면접(모의 서버가 `liveEnabled: false`를 주는 신입 면접)은 소켓에 붙지 않으므로 대본이 돌지 않는다. 모의 서버가 그 면접의 질문에 예상 꼬리질문을 3개씩 붙여서 준다(`data.js`의 `questionsFor`에 `predicted`).

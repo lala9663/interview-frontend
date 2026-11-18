@@ -3,8 +3,8 @@
 //  - 요약: 한 줄 소개, 핵심, 강점
 //  - 확인할 점: 무엇을 · 왜(이력서의 그 문장) · 어느 질문으로 확인하는지. 그 질문을 물었으면 체크가 붙는다.
 //  - 이력: 기간순 이력과, 요약·질문에서 제외한 항목
-// 확인할 점의 근거 문장과 질문 연결(summary.checkItems), 이전 차수 확인점(previousRoundChecks)은 화면 시안이다.
-// API 명세에 아직 없어 값이 없으면 글만 있는 확인할 점(summary.checkPoints)을 보여 준다.
+// 확인할 점의 근거 문장과 질문 연결(summary.checkItems)은 API 명세 2.6 의 선택 항목이고 Agent 가 아직 주지 않는다.
+// 값이 없으면 글만 있는 확인할 점(summary.checkPoints)을 보여 준다. 이전 차수 확인점(previousRoundChecks)은 백엔드가 채운다.
 import { computed, ref } from 'vue'
 import { Check, ChevronDown, ChevronUp, CornerDownRight, EyeOff, Quote } from 'lucide-vue-next'
 import { BLIND_FIELD, INTERVIEW_TYPE, labelOf } from '@/lib/labels.js'
@@ -19,8 +19,9 @@ const s = computed(() => props.briefing.summary)
 // 준비된 질문(가지가 아닌 것)을 순서대로. 확인할 점의 questionOrder 가 이 순서의 번호다(1부터)
 const prepared = computed(() => props.questions.filter((q) => !q.hidden && !q.parentQuestionId && q.source !== 'FOLLOW_UP'))
 const checks = computed(() =>
-  (s.value.checkItems || s.value.checkPoints.map((text) => ({ text }))).map((c) => {
-    const question = c.questionOrder ? prepared.value[c.questionOrder - 1] : null
+  (s.value.checkItems?.length ? s.value.checkItems : (s.value.checkPoints || []).map((text) => ({ text }))).map((c) => {
+    // questionOrder 는 준비된 질문의 orderNo 다. 같은 orderNo 가 없으면 준비된 질문의 순번으로 찾는다
+    const question = c.questionOrder ? prepared.value.find((q) => q.orderNo === c.questionOrder) || prepared.value[c.questionOrder - 1] || null : null
     return { ...c, question, no: question ? c.questionOrder : null, done: !!question?.asked }
   }),
 )

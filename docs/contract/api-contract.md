@@ -53,7 +53,7 @@
 | 이름 | 값 |
 | --- | --- |
 | `Track` | `NEW_GRAD`(신입), `EXPERIENCED`(경력) |
-| `InterviewType` | `PT`, `PERSONALITY`(인성), `PORTFOLIO`, `JOB`(직무) |
+| `InterviewType` | `JOB`(직무), `PERSONALITY`(인성). 신입도 경력도 면접은 이 두 가지다(2026-11-18 확인. `PT`와 `PORTFOLIO`는 없앴다) |
 | `InterviewMode` | `OFFLINE`(대면), `ONLINE`(화상) |
 | `InterviewStatus` | `WAITING`(일정 전), `SCHEDULED`, `IN_PROGRESS`, `EVALUATING`, `DONE`, `CANCELED` |
 | `RoomStatus` | `CREATED`, `LIVE`, `ENDED` |
@@ -66,6 +66,10 @@
 | `ReportDetail` | `BRIEF`(신입), `DETAILED`(경력) |
 | `UserRole` | `ADMIN`, `INTERVIEWER` |
 | `MatchedBy` | `JD`(JD 기반 자동), `MANUAL`, `IMPORT`(엑셀로 들어옴) |
+| `ApplicantType` | 면접자 유형. 신입: `SCHOLARSHIP`(장학생), `OPEN`(공채), `INTERN`(인턴 전환). 경력: `CAREER`(일반 경력), `PHD`(박사), `CAREER_MASTER`(경력 석사). 모르면 null |
+| `FeedbackOverall` | `GOOD`(도움이 됐다), `SOSO`(보통), `BAD`(도움이 안 됐다) |
+| `QuestionVote` | `UP`, `DOWN` |
+| `ServiceStatus` | `OK`, `DEGRADED`(느리거나 일부 실패), `DOWN` |
 
 ## 2. 프론트 → 백엔드 (`/api/v1`)
 
@@ -104,7 +108,7 @@
 | GET | `/recruitments/{id}/uploads` | 업로드 이력 |
 | GET | `/uploads/{id}` | 업로드 한 건과 오류 목록 |
 | GET | `/uploads/template` | 샘플 엑셀 내려받기 |
-| GET | `/recruitments/{id}/candidates?jobCode=&q=&status=&type=&page=&size=` | 면접자 목록. `status`와 `type`(`InterviewType`)은 "지금 차수" 면접의 값으로 거른다 |
+| GET | `/recruitments/{id}/candidates?jobCode=&applicantType=&q=&status=&type=&page=&size=` | 면접자 목록. `status`와 `type`(`InterviewType`)은 "지금 차수" 면접의 값으로 거른다. `applicantType`(`ApplicantType`)은 면접자 유형으로 거른다 |
 | GET | `/candidates/{id}` | 면접자 상세 |
 | GET | `/candidates/{id}/progress` | 전형 진행(면접 차수별 상태). 경력 화면의 진행 표시에 쓴다 |
 
@@ -117,14 +121,14 @@
 
 ```json
 // Candidate (목록 항목)
-{ "id": 101, "applicantNo": "2026H-00014", "name": "이도윤", "track": "NEW_GRAD",
+{ "id": 101, "applicantNo": "2026H-00014", "name": "이도윤", "track": "NEW_GRAD", "applicantType": "OPEN",
   "jobCode": "SW", "jobTitle": "SW개발", "interviewers": [ { "id": 1, "name": "김서연" } ],
-  "briefingStatus": "SUCCEEDED", "currentStage": { "type": "PT", "status": "SCHEDULED" } }
+  "briefingStatus": "SUCCEEDED", "currentStage": { "type": "JOB", "status": "SCHEDULED" } }
 ```
 
 ```json
 // Candidate (상세). profile은 블라인드 항목이 이미 빠진 값이다.
-{ "id": 101, "applicantNo": "...", "name": "이도윤", "track": "NEW_GRAD", "jobCode": "SW", "jobTitle": "SW개발",
+{ "id": 101, "applicantNo": "...", "name": "이도윤", "track": "NEW_GRAD", "applicantType": "OPEN", "jobCode": "SW", "jobTitle": "SW개발",
   "profile": { "education": [ { "school": "...", "major": "...", "degree": "학사", "gpa": "3.9/4.5" } ],
                "courses": ["자료구조", "운영체제"], "essays": [ { "title": "지원동기", "text": "..." } ],
                "projects": [ { "title": "...", "text": "..." } ], "careers": [ { "company": "...", "role": "...", "period": "...", "text": "..." } ],
@@ -137,7 +141,7 @@
 
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
-| POST | `/recruitments/{id}/assignments/auto` | JD 기반 임시 매칭 실행(면접관 `jobCodes` ↔ 면접자 `jobCode`, 부하 균등). 결과 요약 반환 (ADMIN) |
+| POST | `/recruitments/{id}/assignments/auto` | JD 기반 임시 매칭 실행(면접관 `jobCodes` ↔ 면접자 `jobCode`, 부하 균등). 결과 요약 반환 (ADMIN). 면접이 없는 면접자에게는 직무(`JOB`) → 인성(`PERSONALITY`) 두 건을 만든다. 2026-11-18 회의에서 자동 매칭은 필요 없다고 해, 매칭 파일을 받는 통로가 생기면 없앤다(2.14) |
 | PUT | `/interviews/{id}/interviewers` | `{ "interviewerIds": [1,2] }` 수동 지정 (ADMIN) |
 | GET | `/interviewers?jobCode=` | 면접관 목록 |
 
@@ -149,16 +153,22 @@
 | POST | `/candidates/{id}/interviews` | `{ "type", "mode", "scheduledAt", "durationMinutes" }` 면접 등록(1인당 여러 건) (ADMIN) |
 | GET | `/interviews/{id}` | 상세 |
 | PATCH | `/interviews/{id}` | 일정·상태 수정 |
+| PUT | `/interviews/{id}/persona` | `{ "personaId": 3 }` 이 면접의 페르소나를 고른다(2.12). 배정된 면접관 또는 ADMIN. 적용되는 페르소나가 실제로 바뀌고 사전 리포트가 이미 있으면 새 페르소나로 다시 만드는 작업을 시작한다(그동안 `briefingStatus`는 `PENDING` 또는 `RUNNING`. 이미 돌고 있는 브리핑 작업이 있으면 그 작업이 끝난 뒤 페르소나가 달라졌을 때 한 번 더 만든다). `personaId`가 없으면 `400 VALIDATION_FAILED`, 방이 `LIVE`·`ENDED`면 `409 PERSONA_LOCKED`, 없는 id면 `404 PERSONA_NOT_FOUND`, 쓰지 않는 페르소나면 `400 PERSONA_NOT_AVAILABLE`. 응답은 Interview |
 
 ```json
 // Interview
-{ "id": 501, "candidate": { "id": 101, "name": "이도윤", "applicantNo": "...", "jobTitle": "SW개발" },
-  "track": "NEW_GRAD", "type": "PT", "seq": 1, "mode": "OFFLINE", "status": "SCHEDULED",
+{ "id": 501, "candidate": { "id": 101, "name": "이도윤", "applicantNo": "...", "jobTitle": "SW개발", "applicantType": "OPEN" },
+  "track": "NEW_GRAD", "type": "JOB", "seq": 1, "mode": "OFFLINE", "status": "SCHEDULED",
   "scheduledAt": "...", "durationMinutes": 30,
   "interviewers": [ { "id": 1, "name": "김서연", "matchedBy": "JD" } ],
   "roomId": 9001, "roomStatus": "CREATED",
-  "briefingStatus": "SUCCEEDED", "reportStatus": null, "reportBasis": null }
+  "briefingStatus": "SUCCEEDED", "reportStatus": null, "reportBasis": null,
+  "liveEnabled": false,
+  "persona": { "id": 3, "name": "경험 행동형", "tone": "ok", "questionType": "행동 사례 질문", "followUpType": "빠진 단계 보완" } }
 ```
+
+- `liveEnabled`: 이 면접에서 실시간 기능(녹음, 전사, 꼬리질문 제안, 면접 뒤 보고서)을 쓰는가. 트랙으로 정한다: 신입은 기본이 `false`(2026-11-18 회의. 백엔드 설정 `app.live.new-grad-enabled`), 경력은 기본이 `true`(`app.live.experienced-enabled`). 면접 방식(대면·화상)이나 면접 한 건 단위로는 나누지 않는다. `false`인 면접은 방을 열고 시작·종료할 수 있지만 입장권을 주지 않고(2.7), 종료해도 AI 평가와 보고서를 만들지 않는다.
+- `persona`: 이 면접에 적용되는 페르소나의 요약. 고른 것이 없으면 기본 선택(2.12). 쓰는 페르소나가 하나도 없으면 null이다(마지막 하나는 끄거나 지울 수 없어 보통은 생기지 않는다).
 
 ### 2.6 사전 리포트(브리핑)와 질문
 
@@ -169,14 +179,27 @@
 | GET | `/interviews/{id}/questions` | 준비된 질문 + 면접 중 추가된 질문 |
 | POST | `/interviews/{id}/questions` | `{ "text", "category" }` 수동 추가(`source: MANUAL`) |
 | PATCH | `/questions/{id}` | `{ "text"?, "orderNo"?, "asked"?, "hidden"? }` |
+| GET | `/interviews/{id}/question-feedback` | 준비된 질문이 도움이 됐는지에 대한 내 의견. 없으면 `overall: null`, `votes: []` |
+| PUT | `/interviews/{id}/question-feedback` | `{ "overall": "GOOD" \| "SOSO" \| "BAD" \| null, "votes": [ { "questionId": 7001, "vote": "UP" \| "DOWN" } ] }` 내 의견을 통째로 바꿔 저장한다. 배정된 면접관 또는 ADMIN. 다른 면접의 질문이거나 같은 `questionId`가 두 번 오면 `400 VALIDATION_FAILED` |
 
 ```json
 // Briefing
 { "status": "SUCCEEDED", "generatedAt": "...", "model": "fake-llm",
   "summary": { "headline": "임베디드 프로젝트 경험이 뚜렷한 SW 지원자",
                "keyPoints": ["..."], "strengths": ["..."], "checkPoints": ["..."],
-               "timeline": [ { "period": "2024.03~2024.12", "text": "캡스톤 ..." } ] },
-  "excluded": ["gender", "family"] }
+               "timeline": [ { "period": "2024.03~2024.12", "text": "캡스톤 ..." } ],
+               "checkItems": [ { "text": "유실률 개선에서 본인이 한 일", "evidenceFrom": "자기소개서", "evidence": "근거가 된 문장", "questionOrder": 1 } ] },
+  "excluded": ["gender", "family"],
+  "previousRoundChecks": { "seq": 1, "type": "JOB", "items": ["정합성 문제를 실제로 겪은 사례"] } }
+```
+
+- `summary.checkItems`(선택): 확인할 점마다 근거가 된 이력서 문장과, 그것을 확인하는 준비된 질문의 `orderNo`(`questionOrder`. 없으면 null. 준비된 질문은 `orderNo` 1부터 Agent가 준 순서대로 저장된다). Agent가 주면 그대로 전한다. 없으면 필드가 없고 화면은 `checkPoints`를 쓴다.
+- `previousRoundChecks`: 같은 면접자의 바로 앞 차수(`seq`가 하나 작은) 면접에 보고서가 있으면 그 최신 보고서의 `nextRoundChecks`. 앞 차수가 없거나 취소됐거나 항목이 없으면 null. 백엔드가 채우며, 사전 리포트가 아직 없어도(`status: null`) 이 값은 온다.
+- `parentQuestionId`가 있는 질문은 그 질문에서 나온 꼬리질문이다. 면접 중에 채택한 꼬리질문(category "꼬리질문")과, 면접 전에 만든 예상 꼬리질문(category "예상 꼬리질문". 실시간 기능을 쓰지 않는 면접에서 질문마다 미리 만든다. 4.1) 두 가지가 있고 둘 다 `source`는 `FOLLOW_UP`이다. 브리핑을 다시 만들어 부모 질문이 사라지면 이미 물은 예상 꼬리질문은 `parentQuestionId`가 null로 남는다.
+
+```json
+// QuestionFeedback
+{ "interviewId": 501, "overall": "GOOD", "votes": [ { "questionId": 7001, "vote": "UP" } ], "updatedAt": "..." }
 ```
 
 ```json
@@ -192,8 +215,8 @@
 | POST | `/interviews/{id}/room` | 방 만들기(이미 있으면 그 방) |
 | GET | `/rooms/{id}` | 방 상태 |
 | POST | `/rooms/{id}/start` | `CREATED → LIVE`, 면접 `IN_PROGRESS` |
-| POST | `/rooms/{id}/end` | `LIVE → ENDED`, 면접 `EVALUATING`. Agent에 마무리 요청, AI 평가와 보고서(LIVE 기반) 작업 시작 |
-| POST | `/rooms/{id}/ticket` | `{ "audio": true }` → 입장권. `audio: true`는 마이크를 보내는 단말(방마다 하나) |
+| POST | `/rooms/{id}/end` | `LIVE → ENDED`, 면접 `EVALUATING`. Agent에 마무리 요청, AI 평가와 보고서(LIVE 기반) 작업 시작. `liveEnabled: false`인 면접은 상태만 바꾸고 Agent를 부르지 않으며 AI 평가와 보고서를 만들지 않는다 |
+| POST | `/rooms/{id}/ticket` | `{ "audio": true }` → 입장권. `audio: true`는 마이크를 보내는 단말(방마다 하나). 실시간 기능을 쓰지 않는 면접(`liveEnabled: false`)이면 `409 LIVE_DISABLED` |
 | GET | `/rooms/{id}/utterances?afterSeq=` | 저장된 전사(새로 고침·재접속 복구용) |
 | GET | `/rooms/{id}/follow-ups` | 저장된 꼬리질문 후보 |
 | POST | `/follow-ups/{id}/use` | 꼬리질문 후보를 질문으로 채택(`source: FOLLOW_UP` 질문 생성) |
@@ -219,10 +242,10 @@
 | GET | `/interviews/{id}/criteria` | 평가 항목(트랙·면접 유형별) |
 | GET | `/interviews/{id}/my-evaluation` | 내 평가(메모 포함) |
 | PUT | `/interviews/{id}/my-evaluation` | `{ "memo", "scores": [ { "criterionCode", "score", "comment" } ], "grade", "submitted" }`. 면접 중에도 자동 저장에 쓴다 |
-| GET | `/interviews/{id}/ai-evaluation` | AI 참고 평가 |
+| GET | `/interviews/{id}/ai-evaluation` | AI 참고 평가. 기본 설정에서는 ADMIN만 볼 수 있고 면접관은 `403 FORBIDDEN`이다(2026-11-18 회의: AI 점수와 등급은 HR만 본다. 백엔드 설정 `app.evaluation.ai-visible-to=ADMIN\|ALL`) |
 | GET | `/interviews/{id}/report` | 최신 보고서 |
 | GET | `/interviews/{id}/report/versions` | 버전 목록(LIVE 초안 → REFINED 보정본) |
-| POST | `/interviews/{id}/report/regenerate` | `202 { "jobId" }` |
+| POST | `/interviews/{id}/report/regenerate` | `202 { "jobId" }`. 실시간 기능을 쓰지 않는 면접(`liveEnabled: false`)이면 `409 LIVE_DISABLED` |
 | GET | `/ai-jobs/{jobId}` | AI 작업 상태 |
 | GET | `/interviews/{id}/jobs` | 이 면접의 작업들 |
 
@@ -282,9 +305,9 @@
 | Interview의 `reportStatus` | 가장 최근 보고서 작업의 상태 |
 | 생성 응답의 HTTP 코드 | 202로 적힌 것 외에는 200. 삭제는 204 |
 | Agent 콜백(5장)의 응답 | utterances·follow-ups `{ saved }`, refined-transcript `{ saved, jobId }`, events `{ ok }` |
-| 추가 오류 코드 | `ROOM_NOT_LIVE`, `ROOM_ALREADY_ENDED`, `INTERVIEW_CANCELED`, `JOB_ALREADY_EXISTS`, `FILE_UNREADABLE`, `SSO_NOT_IMPLEMENTED`(501) |
+| 추가 오류 코드 | `CONFLICT`(409, 같은 것을 동시에 저장해 겹쳤을 때. 다시 보내면 된다), `ROOM_NOT_LIVE`, `ROOM_ALREADY_ENDED`, `INTERVIEW_CANCELED`, `JOB_ALREADY_EXISTS`, `FILE_UNREADABLE`, `SSO_NOT_IMPLEMENTED`(501) |
 
-권한: 조회는 로그인한 사용자 모두. 면접 단위의 쓰기(방, 평가, 질문, 브리핑 생성, 보고서 재생성, 면접 수정)는 배정된 면접관 또는 ADMIN. 면접은 배정된 면접관이 모두 평가를 제출하면 `DONE`이 된다.
+권한: 조회는 로그인한 사용자 모두(AI 참고 평가만 예외다. 2.8). 면접 단위의 쓰기(방, 평가, 질문, 브리핑 생성, 보고서 재생성, 면접 수정)는 배정된 면접관 또는 ADMIN. 면접은 배정된 면접관이 모두 평가를 제출하면 `DONE`이 된다.
 
 ### 2.11 관리자 집계 (ADMIN)
 
@@ -377,6 +400,60 @@
 
 제출된(`submitted: true`) 평가만 집계한다. `items`는 `submittedCount`가 많은 순. 점수가 없는 면접관도 배정이 있으면 포함한다(평균은 `null`).
 
+### 2.12 면접 페르소나
+
+면접관이 면접 전에 고르는 진행 방식이다. 페르소나는 준비된 질문과 꼬리질문의 표현만 바꾼다. 평가 항목과 금지 질문 검사는 모든 페르소나에서 같다.
+
+| 메서드 | 경로 | 설명 |
+| --- | --- | --- |
+| GET | `/personas` | 전체 목록(쓰지 않는 것 포함), 만든 순서 |
+| POST | `/admin/personas` | `{ "name", "description"?, "questionType"?, "followUpType"?, "fit"?, "guard"?, "tone"? }` 새 페르소나. 이름만 필수다. `enabled: true`, `recommended: false`, `custom: true`로 만든다 (ADMIN) |
+| PATCH | `/admin/personas/{id}` | `{ "name"?, "description"?, "questionType"?, "followUpType"?, "fit"?, "guard"?, "tone"?, "recommended"?, "enabled"? }` 보낸 것만 바꾼다 (ADMIN) |
+| DELETE | `/admin/personas/{id}` | 직접 만든 것(`custom: true`)만 지울 수 있다 (ADMIN) |
+| PUT | `/interviews/{id}/persona` | 면접에 페르소나 고르기(2.5) |
+
+```json
+// Persona
+{ "id": 3, "name": "경험 행동형", "description": "상황, 과제, 행동, 결과 순서로 실제 사례를 끌어냅니다.",
+  "questionType": "행동 사례 질문", "followUpType": "빠진 단계 보완",
+  "fit": "본인 역할과 실행의 구체성을 확인할 때", "guard": "가정이 아니라 실제로 있었던 일만 묻습니다.",
+  "tone": "ok", "recommended": true, "enabled": true, "custom": false }
+```
+
+- `tone`은 화면의 표시 색 이름이다: `brand`, `ok`, `warn`, `bad`, `neutral`(기본).
+- `recommended: true`로 바꾸면 `enabled`도 `true`가 되고, `enabled: false`로 바꾸면 `recommended`도 `false`가 된다.
+- 기본 선택: 추천이면서 쓰는 페르소나 가운데 만든 순서가 가장 앞선 것. 추천이 없으면 쓰는 것 가운데 가장 앞선 것.
+- 면접에 고른 페르소나가 나중에 꺼지거나 지워지면 그 면접은 기본 선택을 따른다. 방이 `LIVE`·`ENDED`인 면접은 고른 것이 꺼졌어도 그대로 보여 준다(지워졌으면 기본 선택). 고른 것이 없는 면접은 방 상태와 상관없이 그때의 기본 선택을 보여 준다.
+- 기본 페르소나 다섯 가지(기술 심층형, 압박 검증형, 경험 행동형, 표준 구조화형, 편안한 대화형)는 표가 비어 있을 때 백엔드가 넣는다.
+- 오류: `PERSONA_NOT_FOUND`(404), `PERSONA_NAME_REQUIRED`(400), `PERSONA_NAME_TAKEN`(409), `PERSONA_LAST_ONE`(409, 쓰는 페르소나가 하나뿐일 때 끄거나 지우려 함), `PERSONA_BUILT_IN`(409, 기본 페르소나를 지우려 함), `VALIDATION_FAILED`(400, 모르는 `tone`, `recommended: true`와 `enabled: false`를 함께 보냄). 면접에 고를 때의 오류(`PERSONA_LOCKED`, `PERSONA_NOT_AVAILABLE`)는 2.5.
+
+### 2.13 시스템 상태
+
+| 메서드 | 경로 | 설명 |
+| --- | --- | --- |
+| GET | `/system/status` | 서비스 연결 상태, 지금 요청하면 기다리는 시간, AI 작업 대기열, 일별 면접 세션. 로그인한 사용자 모두 |
+
+```json
+{ "checkedAt": "...",
+  "services": [ { "key": "LLM", "name": "LLM", "detail": "질문 · 꼬리질문 · 보고서", "status": "DEGRADED", "note": "응답이 평소보다 느립니다." } ],
+  "waits": [ { "key": "BRIEFING", "label": "사전 리포트와 질문 만들기", "seconds": 45, "usual": 30 } ],
+  "queue": [ { "key": "BRIEFING", "label": "사전 리포트와 질문", "waiting": 3, "running": 2 } ],
+  "dailySessions": [ { "date": "2026-11-18", "count": 5 } ] }
+```
+
+- `services[].key`: `BACKEND`, `DB`, `AGENT`, `STT`, `LLM`. `status`는 `ServiceStatus`. `STT`와 `LLM`은 Agent `/health` 응답의 `sttStatus`·`llmStatus`를 따르고, 그 값이 없으면 `AGENT`의 상태를 따른다.
+- `waits`: AI 작업 종류(`JobType`)마다, 최근에 성공한 작업이 접수부터 끝까지 걸린 시간의 평균(초. 대기열에서 기다린 시간 포함). `seconds`는 가장 최근 5건, `usual`은 가장 최근 50건. 성공한 작업이 없는 종류는 빠진다.
+- `queue`: AI 작업 종류마다 `PENDING`(`waiting`)과 `RUNNING`(`running`) 수.
+- `dailySessions`: 오늘을 포함한 최근 7일에 시작한 면접 방의 수(날짜 오름차순, 채용 구분 없이 전체). 0건인 날도 넣어 항상 7개다. 마지막이 오늘이다.
+- `DB`가 `DOWN`이면 `waits`·`queue`·`dailySessions`는 빈 목록이다.
+
+### 2.14 아직 명세에 없는 화면 시안
+
+프런트엔드의 모의 서버에만 있는 것이다. 만들기로 정해지면 이 문서에 먼저 넣는다.
+
+- 관리 > AI 모델(작업별 모델 보기와 바꾸기): Agent가 실행 중에 모델을 바꾸는 기능이 먼저 필요하다.
+- 관리 > 등록의 "매칭 파일 올리기"와 "채용 시스템에서 불러오기": 매칭 파일의 형식과 채용 시스템의 읽기 전용 DB 테이블을 받은 뒤 정한다. 그때까지 2.4의 임시 자동 매칭이 남아 있다.
+
 ## 3. 프론트 ↔ Agent WebSocket (`/ws/v1/rooms/{roomId}`)
 
 방마다 여러 단말이 붙을 수 있다(면접관 여러 명의 노트북). 마이크를 보내는 단말은 방에 하나(`audio: true` 입장권)이고, 나머지는 듣기만 한다. 모든 서버 → 클라이언트 이벤트는 방의 모든 단말에 간다(서버가 여러 대여도 Redis로 중계).
@@ -426,7 +503,7 @@
 
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
-| GET | `/health` (접두사 없음) | `{ "status": "UP", "llm": "fake", "stt": "fake" }` |
+| GET | `/health` (접두사 없음) | `{ "status": "UP", "llm": "fake", "stt": "fake" }`. 선택 항목 `llmStatus`·`sttStatus`(`ServiceStatus`)가 있으면 백엔드의 시스템 상태(2.13)가 그 값을 쓴다(Agent에 아직 반영하지 않았다) |
 | POST | `/internal/v1/briefings` | 사전 리포트와 질문 생성 |
 | POST | `/internal/v1/evaluations` | AI 참고 평가 |
 | POST | `/internal/v1/reports` | 면접 후 보고서 |
@@ -438,21 +515,29 @@
 
 ```json
 // 요청
-{ "track": "NEW_GRAD", "interviewType": "PT", "jobTitle": "SW개발", "jdText": "...",
+{ "track": "NEW_GRAD", "interviewType": "JOB", "jobTitle": "SW개발", "jdText": "...",
   "candidate": { "profile": { /* 2.3의 profile, 블라인드 제외본 */ } },
   "questionBank": [ { "id": 31, "category": "CS기초", "text": "..." } ],
-  "questionCount": { "jd": 4, "resume": 6 } }
+  "questionCount": { "jd": 4, "resume": 6 },
+  "applicantType": "OPEN",
+  "persona": { "name": "경험 행동형", "description": "...", "questionType": "행동 사례 질문", "followUpType": "빠진 단계 보완", "guard": "..." },
+  "predictedFollowUps": 3 }
 // 응답
 { "summary": { "headline": "...", "keyPoints": [], "strengths": [], "checkPoints": [], "timeline": [] },
-  "questions": [ { "source": "RESUME", "category": "프로젝트", "text": "...", "intent": "..." } ],
+  "questions": [ { "source": "RESUME", "category": "프로젝트", "text": "...", "intent": "...", "followUps": ["예상 꼬리질문"] } ],
   "excluded": ["family"], "model": "..." }
 ```
+
+- `applicantType`, `persona`, `predictedFollowUps`는 선택 항목이다(없으면 지금까지와 같다). `applicantType`은 면접자 유형, `persona`는 이 면접에 적용할 페르소나다. Agent는 둘을 질문의 표현과 내용에 반영한다.
+- `predictedFollowUps`: 질문마다 미리 만들 예상 꼬리질문의 수. 백엔드는 실시간 기능을 쓰지 않는 면접(`liveEnabled: false`)에서 3을 보내고, 그 밖에는 보내지 않는다. Agent는 그 수만큼 `questions[].followUps`에 글을 넣는다. 백엔드는 이것을 그 질문을 부모로 하는 `FOLLOW_UP` 질문으로 저장한다.
+- 응답의 `summary.checkItems`(선택)는 2.6의 모양이다.
+- **Agent에 아직 반영하지 않았다(2026-11-18).** Agent는 모르는 요청 항목을 무시하므로 지금은 이 세 항목이 결과에 영향을 주지 않고, `followUps`와 `checkItems`도 오지 않는다.
 
 ### 4.2 `POST /internal/v1/evaluations`
 
 ```json
 // 요청
-{ "track": "NEW_GRAD", "interviewType": "PT", "jobTitle": "...", "jdText": "...",
+{ "track": "NEW_GRAD", "interviewType": "JOB", "jobTitle": "...", "jdText": "...",
   "criteria": [ { "code": "PROBLEM_SOLVING", "name": "문제 해결", "description": "...", "maxScore": 5 } ],
   "transcript": [ { "seq": 1, "speaker": "INTERVIEWER", "text": "..." } ],
   "briefingSummary": { } }
@@ -469,7 +554,7 @@
 // 요청
 { "track": "EXPERIENCED", "detail": "DETAILED", "basis": "REFINED", "interviewType": "JOB", "jobTitle": "...", "jdText": "...",
   "transcript": [ ], "briefingSummary": { }, "aiEvaluation": { "scores": [], "overallComment": "" },
-  "previousRounds": [ { "type": "PORTFOLIO", "headline": "...", "checkPoints": [] } ] }
+  "previousRounds": [ { "type": "JOB", "headline": "...", "checkPoints": [] } ] }
 // 응답
 { "content": { /* ReportContent */ }, "model": "..." }
 ```
@@ -510,12 +595,15 @@
 
 ```json
 // GET context 응답
-{ "roomId": 9001, "interviewId": 501, "status": "LIVE", "track": "NEW_GRAD", "interviewType": "PT", "mode": "OFFLINE",
+{ "roomId": 9001, "interviewId": 501, "status": "LIVE", "track": "NEW_GRAD", "interviewType": "JOB", "mode": "OFFLINE",
   "jobTitle": "SW개발", "jdText": "...",
   "candidateBrief": "블라인드 처리된 지원자 요약 텍스트 (사전 리포트 headline + keyPoints)",
   "questions": [ { "id": 7001, "source": "RESUME", "category": "프로젝트", "text": "..." } ],
-  "questionBank": [ { "id": 31, "category": "CS기초", "text": "..." } ] }
+  "questionBank": [ { "id": 31, "category": "CS기초", "text": "..." } ],
+  "persona": { "name": "경험 행동형", "description": "...", "questionType": "행동 사례 질문", "followUpType": "빠진 단계 보완", "guard": "..." } }
 ```
+
+`persona`(선택)는 이 면접에 적용되는 페르소나다. Agent는 꼬리질문의 표현에 반영한다(Agent에 아직 반영하지 않았다).
 
 ```json
 // POST utterances 요청
@@ -533,11 +621,12 @@
 ### 면접 전
 
 1. ADMIN이 엑셀 업로드 → 백엔드가 행 단위로 면접자 저장, 실패 행은 오류 목록.
-2. 자동 매칭 실행 → 면접(`Interview`)과 면접관 배정 생성.
+2. 자동 매칭 실행 → 면접(`Interview`, 직무 → 인성)과 면접관 배정 생성.
 3. 면접마다 브리핑 작업 → 백엔드가 Agent `/briefings` 호출 → 요약과 질문 저장.
 
 ### 면접 중
 
+0. 실시간 기능을 쓰지 않는 면접(`liveEnabled: false`, 신입 대면)은 아래 1~4를 하지 않는다. 방을 열어 준비된 질문과 예상 꼬리질문을 보며 진행하고, 메모와 평가만 저장한다.
 1. 면접관이 방 입장 → `POST /rooms/{id}/ticket` → Agent WebSocket 연결, `auth`.
 2. `POST /rooms/{id}/start`. 마이크 단말이 PCM을 보낸다.
 3. Agent: 말소리 구간으로 자름 → Whisper → LLM 다듬기 → 화자 판정 → `transcript.final`. 면접관 말이면 준비된 질문·제안한 꼬리질문과 유사도 비교 → `question.matched` 또는 `followup.matched`. 지원자 답이 끝나면 꼬리질문 생성 → `followup.suggested`.
@@ -546,6 +635,6 @@
 
 ### 면접 후
 
-1. `POST /rooms/{id}/end` → 백엔드가 Agent `finalize` 호출 → AI 평가 작업 → 보고서 작업(`LIVE`). 신입은 1~2분 안에 초안이 보인다.
+1. `POST /rooms/{id}/end` → 백엔드가 Agent `finalize` 호출 → AI 평가 작업 → 보고서 작업(`LIVE`). `liveEnabled: false`인 면접은 상태만 `EVALUATING`으로 바뀐다.
 2. Agent가 사후 STT를 끝내면 `PUT refined-transcript` → 백엔드가 전사를 바꾸고, AI 평가를 다시 한 뒤 `REFINED` 보고서를 새 버전으로 올린다. 화면은 "보정본으로 갱신됨"을 알린다. 초안 작업이 보정본보다 늦게 끝나면 그 초안은 저장하지 않는다(최신 버전이 초안으로 돌아가지 않게).
 3. 경력(`DETAILED`)은 같은 흐름에서 상세 보고서를 만들며, 제한 시간이 길다.

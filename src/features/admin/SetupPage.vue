@@ -15,7 +15,7 @@ import { useUi } from '@/stores/ui.js'
 import { usePolling } from '@/lib/poll.js'
 import { hm, mdhm } from '@/lib/format.js'
 import { INTERVIEW_STATUS, INTERVIEW_TYPE, labelOf } from '@/lib/labels.js'
-import { has } from '@/lib/features.js'
+import { has, mockData } from '@/lib/features.js'
 
 const ui = useUi()
 const router = useRouter()
@@ -28,7 +28,9 @@ const showUpload = ref(false)
 const matching = ref(false)
 const matchResult = ref(null)
 const errorBatch = ref(null)
-const noAutoMatch = has('feedback1118')
+// 매칭 파일 올리기 · 채용 시스템에서 불러오기는 API 명세에 아직 없다(명세 2.14). 가짜 데이터로 돌 때만 보여 주고,
+// 실제 백엔드에 붙으면 임시 자동 매칭 화면이 그대로 나온다.
+const noAutoMatch = has('feedback1118') && mockData
 const experienced = computed(() => ui.track === 'EXPERIENCED')
 const syncedAt = ref(null) // 채용 시스템에서 마지막으로 읽어 온 때(이 화면에서만 기억)
 

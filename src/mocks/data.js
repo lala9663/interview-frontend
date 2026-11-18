@@ -42,7 +42,7 @@ export const jobs = [
   { id: 4, recruitmentId: 2, jobCode: 'SW', title: '플랫폼 백엔드(경력)', jdText: '대규모 트래픽 서비스의 백엔드 설계와 운영. Java/Spring, 분산 시스템.' },
 ]
 
-// applicantType: 면접자 유형(11/18 회의). API 명세에 아직 없는 값이다(lib/labels.js 의 APPLICANT_TYPE).
+// applicantType: 면접자 유형(API 명세의 ApplicantType, lib/labels.js 의 APPLICANT_TYPE).
 const NEW_TYPES = ['OPEN', 'OPEN', 'SCHOLARSHIP', 'OPEN', 'INTERN']
 const N = (id, applicantNo, name, jobCode, jobTitle, school, major, extra = {}) => ({
   id, applicantNo, name, track: 'NEW_GRAD', recruitmentId: 1, jobCode, jobTitle, applicantType: NEW_TYPES[id % NEW_TYPES.length],
@@ -186,7 +186,7 @@ export function briefingFor(c, it) {
       checkPoints: exp
         ? ['"처리량 3배"에서 본인이 설계한 범위', '분리 과정에서의 데이터 정합성 처리 방식']
         : ['유실률 4% → 0.2% 개선에서 본인이 한 일과 팀이 한 일의 구분', '전공 기초(운영체제) 이해 깊이'],
-      // 화면 시안(API 명세에 아직 없다): 확인할 점마다 근거가 된 이력서 문장과, 그것을 확인하는 준비된 질문의 순서(1부터)
+      // 확인할 점마다 근거가 된 이력서 문장과, 그것을 확인하는 준비된 질문의 순서(1부터). API 명세 2.6 의 선택 항목이고 Agent 가 아직 주지 않는다
       checkItems: exp
         ? [
             { text: '"처리량 3배"에서 본인이 설계한 범위', evidenceFrom: '프로젝트', evidence: proj.text, questionOrder: 1 },
@@ -202,7 +202,7 @@ export function briefingFor(c, it) {
         : [{ period: '2025.03 ~ 2025.12', text: proj.title }, { period: '2024.06 ~ 2024.08', text: '학부 연구생 (임베디드 연구실)' }],
     },
     excluded: ['gender', 'family'],
-    // 화면 시안(API 명세에 아직 없다): 경력 2차 이상이면 앞 차수 보고서의 "다음 차수에서 확인할 점"
+    // 앞 차수 보고서의 "다음 차수에서 확인할 점"(API 명세 2.6). 가짜 데이터에서는 경력 2차 이상에만 넣는다
     previousRoundChecks: exp && it.seq > 1 ? { seq: it.seq - 1, type: 'JOB', items: ['정합성 문제를 실제로 겪은 사례', '팀 내 설계 리뷰에서의 역할'] } : null,
     _type: it.type,
   }
@@ -420,21 +420,21 @@ export function reportFor(c, it, basis = 'REFINED') {
   }
 }
 
-// ---- 면접 페르소나 (화면 시안, API 명세에 아직 없다) ----
+// ---- 면접 페르소나 (API 명세 2.12) ----
 // 면접관이 면접 전에 고르는 진행 방식. 페르소나에 따라 준비된 질문의 표현이 바뀐다.
 // 추천·사용 여부는 관리 > 면접 페르소나에서 정한다. tone 은 main.css 의 .tone-* 이름.
 export const personas = [
-  { id: 'DEPTH', name: '기술 심층형', tone: 'brand', description: '구조와 원리, 대안 사이의 장단점을 단계별로 파고듭니다.', questionType: '원리·대안 질문', followUpType: '장단점 심화', fit: '설계 판단과 기술 이해를 깊게 볼 때', guard: '정답을 유도하지 않고 지원자가 실제로 한 선택을 묻습니다.', recommended: true, enabled: true },
-  { id: 'PRESSURE', name: '압박 검증형', tone: 'bad', description: '서류의 주장에 반론을 걸고, 수치와 근거가 나올 때까지 같은 지점을 다시 묻습니다.', questionType: '반박형 질문', followUpType: '근거 추궁', fit: '성과 주장이 크고 검증되지 않은 항목이 많을 때', guard: '압박은 주장과 근거에만 겁니다. 인격·감정을 자극하는 표현은 만들지 않습니다.', recommended: true, enabled: true },
-  { id: 'STAR', name: '경험 행동형', tone: 'ok', description: '상황, 과제, 행동, 결과 순서로 실제 사례를 끌어냅니다.', questionType: '행동 사례 질문', followUpType: '빠진 단계 보완', fit: '본인 역할과 실행의 구체성을 확인할 때', guard: '가정이 아니라 실제로 있었던 일만 묻습니다.', recommended: true, enabled: true },
-  { id: 'STANDARD', name: '표준 구조화형', tone: 'neutral', description: '모든 지원자에게 같은 질문을 같은 순서로 묻고, 빠진 근거만 짧게 확인합니다.', questionType: '구조화 질문', followUpType: '근거 확인', fit: '여러 지원자를 같은 기준으로 비교할 때', guard: '준비한 질문 표현을 그대로 씁니다.', recommended: false, enabled: true },
-  { id: 'RAPPORT', name: '편안한 대화형', tone: 'warn', description: '열린 질문으로 시작해 지원자가 스스로 이야기를 이어 가도록 돕습니다.', questionType: '열린 질문', followUpType: '이어 말하기 유도', fit: '긴장도가 높은 지원자를 만날 때', guard: '칭찬이나 평가로 들릴 수 있는 표현은 최소로 씁니다.', recommended: false, enabled: true },
+  { id: 1, name: '기술 심층형', tone: 'brand', description: '구조와 원리, 대안 사이의 장단점을 단계별로 파고듭니다.', questionType: '원리·대안 질문', followUpType: '장단점 심화', fit: '설계 판단과 기술 이해를 깊게 볼 때', guard: '정답을 유도하지 않고 지원자가 실제로 한 선택을 묻습니다.', recommended: true, enabled: true, custom: false },
+  { id: 2, name: '압박 검증형', tone: 'bad', description: '서류의 주장에 반론을 걸고, 수치와 근거가 나올 때까지 같은 지점을 다시 묻습니다.', questionType: '반박형 질문', followUpType: '근거 추궁', fit: '성과 주장이 크고 검증되지 않은 항목이 많을 때', guard: '압박은 주장과 근거에만 겁니다. 인격·감정을 자극하는 표현은 만들지 않습니다.', recommended: true, enabled: true, custom: false },
+  { id: 3, name: '경험 행동형', tone: 'ok', description: '상황, 과제, 행동, 결과 순서로 실제 사례를 끌어냅니다.', questionType: '행동 사례 질문', followUpType: '빠진 단계 보완', fit: '본인 역할과 실행의 구체성을 확인할 때', guard: '가정이 아니라 실제로 있었던 일만 묻습니다.', recommended: true, enabled: true, custom: false },
+  { id: 4, name: '표준 구조화형', tone: 'neutral', description: '모든 지원자에게 같은 질문을 같은 순서로 묻고, 빠진 근거만 짧게 확인합니다.', questionType: '구조화 질문', followUpType: '근거 확인', fit: '여러 지원자를 같은 기준으로 비교할 때', guard: '준비한 질문 표현을 그대로 씁니다.', recommended: false, enabled: true, custom: false },
+  { id: 5, name: '편안한 대화형', tone: 'warn', description: '열린 질문으로 시작해 지원자가 스스로 이야기를 이어 가도록 돕습니다.', questionType: '열린 질문', followUpType: '이어 말하기 유도', fit: '긴장도가 높은 지원자를 만날 때', guard: '칭찬이나 평가로 들릴 수 있는 표현은 최소로 씁니다.', recommended: false, enabled: true, custom: false },
 ]
 
 // 페르소나별 질문 표현. 지금은 경력 직무 면접의 준비된 질문 여섯 개(questionsFor 의 순서)만 있다.
-// 표준형과 여기에 없는 면접은 원래 표현을 쓴다.
+// 열쇠는 페르소나 id 다. 표준형(4)과 여기에 없는 면접은 원래 표현을 쓴다.
 const PERSONA_TEXT = {
-  DEPTH: [
+  1: [ // 기술 심층형
     '주문 처리 시스템 재설계에서 문제를 어떤 단계로 나눠 진단했고, 각 단계에서 무엇을 바꿨나요?',
     '원인을 좁혀 간 과정과, 검토한 대안마다 어떤 장단점이 있었는지 설명해 주세요.',
     'Kafka 소비가 밀리는 원인을 어떻게 나눠 보고, 원인마다 어떤 조치를 고르나요?',
@@ -442,7 +442,7 @@ const PERSONA_TEXT = {
     '트래픽이 열 배가 되면 지금 구조의 어느 구성 요소가 어떤 순서로 한계에 닿나요?',
     '다시 설계한다면 어느 결정을 바꾸겠고, 그 근거는 무엇인가요?',
   ],
-  PRESSURE: [
+  2: [ // 압박 검증형
     '이력서에는 처리량을 3배로 늘렸다고만 적혀 있습니다. 그중 본인이 직접 한 일은 무엇이고, 무엇을 근거로 3배라고 보셨습니까?',
     '그 원인이 맞다고 단정할 수 있습니까? 버린 대안과 버린 이유를 말씀해 주세요.',
     'Kafka 소비가 밀렸을 때 소비자를 늘리는 것 말고 실제로 한 조치가 있습니까?',
@@ -450,7 +450,7 @@ const PERSONA_TEXT = {
     '트래픽이 열 배가 되면 지금 설계는 버티지 못합니다. 무엇을 포기하고 무엇을 지키겠습니까?',
     '그 프로젝트에서 본인의 판단이 틀렸던 부분은 어디입니까?',
   ],
-  STAR: [
+  3: [ // 경험 행동형
     '주문 처리 시스템 재설계에서 가장 어려웠던 상황과, 그때 본인이 한 일을 순서대로 말씀해 주세요.',
     '원인을 찾아야 했던 때를 떠올려, 어떤 선택지가 있었고 본인이 어떻게 결정했는지 말씀해 주세요.',
     'Kafka 소비가 밀렸던 사례 하나를 골라, 상황과 본인이 한 조치, 결과를 말씀해 주세요.',
@@ -458,7 +458,7 @@ const PERSONA_TEXT = {
     '트래픽이 갑자기 늘었던 경험이 있다면, 그때 상황과 본인의 대응을 말씀해 주세요.',
     '그 경험 뒤에 실제로 다르게 해 본 일이 있다면 말씀해 주세요.',
   ],
-  RAPPORT: [
+  5: [ // 편안한 대화형
     '주문 처리 시스템 재설계를 흥미롭게 봤습니다. 맡으신 역할과 어려웠던 점을 편하게 들려주시겠어요?',
     '원인을 찾던 때 이야기를 들려주세요. 어떤 고민이 있었나요?',
     'Kafka 소비가 밀릴 때는 주로 어떻게 살펴보시나요?',
@@ -470,39 +470,35 @@ const PERSONA_TEXT = {
 /** 그 면접에서 페르소나에 맞춘 질문 표현들(없으면 null → 원래 표현을 쓴다) */
 export const personaTexts = (c, it, personaId) => (c.track === 'EXPERIENCED' && it.type === 'JOB' ? PERSONA_TEXT[personaId] || null : null)
 
-// ---- 시스템 상태 (화면 시안, API 명세에 아직 없다) ----
-// 값은 화면 모양을 보기 위한 가짜 값이다. 실제로는 백엔드가 각 서비스에 물어서 답한다.
+// ---- 시스템 상태 (API 명세 2.13) ----
+// 값은 화면 모양을 보기 위한 가짜 값이다. 실제로는 백엔드가 각 서비스와 AI 작업 기록에서 모은다.
 export function systemStatus() {
   return {
     checkedAt: new Date().toISOString(),
     services: [
       { key: 'BACKEND', name: '백엔드', detail: '면접 기록과 평가 저장', status: 'OK', note: '' },
+      { key: 'DB', name: 'DB', detail: 'Oracle', status: 'OK', note: '' },
       { key: 'AGENT', name: 'Agent', detail: '면접 방 실시간 처리', status: 'OK', note: '' },
       { key: 'STT', name: '음성 인식', detail: 'Whisper', status: 'OK', note: '' },
       { key: 'LLM', name: 'LLM', detail: '질문 · 꼬리질문 · 보고서', status: 'DEGRADED', note: '응답이 평소보다 느립니다. 꼬리질문과 보고서가 늦게 나올 수 있습니다.' },
-      { key: 'DB', name: 'DB', detail: 'Oracle', status: 'OK', note: '' },
-      { key: 'REDIS', name: 'Redis', detail: '로그인 · 방 이벤트 중계', status: 'OK', note: '' },
     ],
-    // 지금 요청하면 얼마나 기다리는지(초). usual 은 평소 값
+    // 지금 요청하면 얼마나 기다리는지(초): 최근에 끝난 작업이 걸린 시간의 평균. usual 은 평소 값
     waits: [
       { key: 'BRIEFING', label: '사전 리포트와 질문 만들기', seconds: 45, usual: 30 },
-      { key: 'FOLLOW_UP', label: '꼬리질문 제안', seconds: 8, usual: 4 },
+      { key: 'AI_EVALUATION', label: 'AI 참고 평가', seconds: 55, usual: 40 },
       { key: 'REPORT', label: '면접 보고서 초안', seconds: 110, usual: 80 },
     ],
     // 분석 작업 대기열: AI 작업 종류마다 기다리는 것과 돌고 있는 것
     queue: [
       { key: 'BRIEFING', label: '사전 리포트와 질문', waiting: 3, running: 2 },
-      { key: 'REFINE', label: '문장 다듬기 · 화자 구분', waiting: 2, running: 1 },
-      { key: 'FOLLOW_UP', label: '꼬리질문 제안', waiting: 0, running: 1 },
-      { key: 'EVALUATION', label: 'AI 참고 평가', waiting: 0, running: 0 },
-      { key: 'REPORT', label: '면접 보고서 초안', waiting: 1, running: 1 },
-      { key: 'POST_STT', label: '면접 뒤 대화 다시 정리(보정본)', waiting: 0, running: 1 },
+      { key: 'AI_EVALUATION', label: 'AI 참고 평가', waiting: 0, running: 1 },
+      { key: 'REPORT', label: '면접 보고서', waiting: 1, running: 1 },
     ],
-    // 일별 면접 세션: 최근 7일(오늘 포함)에 연 면접 방의 수
+    // 일별 면접 세션: 최근 7일(오늘 포함)에 시작한 면접 방의 수
     dailySessions: [6, 9, 7, 11, 8, 2, 5].map((count, i) => {
       const d = new Date()
       d.setDate(d.getDate() - (6 - i))
-      return { date: d.toISOString().slice(0, 10), count }
+      return { date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, count }
     }),
   }
 }

@@ -43,7 +43,7 @@ const requesting = ref(false)
 const treeLayout = has('feedback1118')
 const talkOpen = ref(false)
 // 실시간 기능(녹음, 전사, 꼬리질문 제안)이 잠긴 면접인가
-const locked = computed(() => liveLocked(interview.value?.track))
+const locked = computed(() => liveLocked(interview.value))
 const online = computed(() => interview.value?.mode === 'ONLINE')
 // 접힌 대화 대신 가운데 아래에 한 줄로 보여 줄 "방금 들은 말"
 const lastHeard = computed(() => {
@@ -244,7 +244,7 @@ const notice = computed(() => {
 
       <div class="flex items-center gap-2">
         <template v-if="live && locked">
-          <span class="badge tone-neutral gap-1" title="신입 대면 면접은 실시간 녹음과 꼬리질문 제안을 쓰지 않습니다"><Lock :size="12" />실시간 기록 잠김</span>
+          <span class="badge tone-neutral gap-1" title="이 면접은 실시간 녹음과 꼬리질문 제안을 쓰지 않습니다"><Lock :size="12" />실시간 기록 잠김</span>
           <button class="btn btn-danger btn-sm" @click="confirmEnd = true"><Square :size="13" fill="currentColor" />면접 종료</button>
         </template>
         <template v-else-if="live">
@@ -332,7 +332,7 @@ const notice = computed(() => {
             <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-brand-soft text-brand"><ListTree :size="26" /></span>
             <div>
               <h2 class="text-xl font-bold tracking-tight">면접을 시작할 준비가 됐나요?</h2>
-              <p class="mt-1 text-[0.93rem] leading-relaxed text-sub">신입 대면 면접은 녹음과 실시간 꼬리질문 제안을 쓰지 않습니다.<br />준비된 질문과 예상 꼬리질문을 보면서 진행하고, 물은 질문은 눌러서 표시합니다.</p>
+              <p class="mt-1 text-[0.93rem] leading-relaxed text-sub">이 면접은 녹음과 실시간 꼬리질문 제안을 쓰지 않습니다.<br />준비된 질문을 보면서 진행하고, 물은 질문은 눌러서 표시합니다.</p>
             </div>
             <button class="btn btn-primary btn-lg mx-auto" @click="start"><Play :size="18" fill="currentColor" />면접 시작</button>
           </div>
