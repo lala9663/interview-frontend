@@ -43,7 +43,7 @@ features/room/use-microphone.js ── public/audio/pcm16-worklet.js (16kHz PCM1
 
 실시간 기능이 잠겼는지는 `liveLocked(interview)`(`lib/features.js`)가 면접 응답의 `liveEnabled`로 판단한다(API 명세 2.5). 스위치나 트랙을 보지 않는다.
 
-`persona`가 켜졌을 때: 면접 전 화면 위에 `interview/PersonaPicker.vue`가 나온다(면접 응답에 `persona`가 있을 때). 면접관이 페르소나(진행 방식)를 고르면 `PUT /interviews/{id}/persona`를 부른다(API 명세 2.5). 가짜 데이터에서는 준비된 질문의 표현이 바뀐다(`mocks/data.js`의 `PERSONA_TEXT`). 추천으로 켠 페르소나는 카드로, 나머지는 작은 버튼으로 보이고, 면접이 시작된 뒤에는 바꿀 수 없다. 어떤 페르소나를 추천하고 쓸지는 관리 > 면접 페르소나(`admin/PersonaPage.vue`)에서 정한다. 이 화면에서 새 페르소나를 더하고, 고치고, 직접 만든 것은 지운다(API 명세 2.12, `api/index.js`의 `personaApi`).
+`persona`가 켜졌을 때: 면접 전 화면 위에 `interview/PersonaPicker.vue`가 나온다(면접 응답에 `persona`가 있을 때). 면접관이 페르소나(진행 방식)를 고르면 `PUT /interviews/{id}/persona`를 부른다(API 명세 2.5). 가짜 데이터에서는 모든 면접에서 준비된 질문의 표현이 바뀐다(경력 직무 면접은 `mocks/data.js`의 `PERSONA_TEXT`, 그 밖의 면접은 `personaRewrite`). 추천으로 켠 페르소나는 카드로, 나머지는 작은 버튼으로 보이고, 면접이 시작된 뒤에는 바꿀 수 없다. 어떤 페르소나를 추천하고 쓸지는 관리 > 면접 페르소나(`admin/PersonaPage.vue`)에서 정한다. 이 화면에서 새 페르소나를 더하고, 고치고, 직접 만든 것은 지운다(API 명세 2.12, `api/index.js`의 `personaApi`).
 
 `systemStatus`가 켜졌을 때: 위쪽 줄(`AppShell.vue`)에 상태 버튼(`components/SystemStatusChip.vue`)이 나온다. 가장 나쁜 서비스 상태 하나로 요약해 보여 주고, 누르면 서비스 연결 상태와 "지금 요청하면 기다리는 시간"이 뜬다(`SystemStatusPanel.vue`). 30초마다 다시 읽는다. 관리 > 시스템 상태(`admin/SystemStatusPage.vue`)는 같은 내용에 일별 면접 세션과 분석 작업 대기열을 더해 보여 주고 10초마다 다시 읽는다. 읽는 것은 `GET /system/status` 하나다(API 명세 2.13, `systemApi`).
 

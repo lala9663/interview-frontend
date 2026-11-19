@@ -5,7 +5,7 @@
 | 주제 | 지금의 가정 | 답이 오면 고칠 곳 |
 | --- | --- | --- |
 | 직무 면접과 인성 면접의 관계 | 서로 다른 면접(차수)으로 등록한다. 같은 날 연달아 봐도 방은 따로 | 동시에 한 방에서 본다면 `features/room`에 면접 유형 전환을 더한다 |
-| 경력 화상 면접(Knox Teams) | 신입과 같이 면접관 노트북 브라우저가 소리를 받는다. `feedback1118`이 켜진 화면의 시작 덮개는 화상 면접에서 마이크 선택을 보여 주지 않고 "소리를 받는 방식은 아직 확인 중"이라고 안내한다(동작은 같다) | Knox가 전사를 주면 마이크 없이 듣기 전용으로 붙는다(`audioOwner=false`가 기본이 되게) |
+| 경력 화상 면접(Knox Teams) | 면접관 노트북 브라우저가 소리를 받는다(신입은 지금 실시간 기능이 잠겨 있어 소리를 받지 않는다). `feedback1118`이 켜진 화면의 시작 덮개는 화상 면접에서 마이크 선택을 보여 주지 않고 "소리를 받는 방식은 아직 확인 중"이라고 안내한다(동작은 같다) | Knox가 전사를 주면 마이크 없이 듣기 전용으로 붙는다(`audioOwner=false`가 기본이 되게) |
 | 평가 등급 | A~D 네 단계 | `features/review/MyEvaluationPanel.vue`의 `BASE_GRADES` |
 | 평가 항목 | 백엔드가 주는 `criteria`를 그대로 그린다 | 프론트 변경 없음 |
 | 채용 시스템 입력 화면 | 항목별 점수 + 등급 + 종합 의견을 한 덩어리 글로 복사 | 실제 입력 화면 캡처를 받으면 같은 칸 구성으로 바꾸고 칸마다 복사 버튼을 둔다 |
@@ -38,7 +38,7 @@ API 명세 4.1과 5장에 "Agent에 아직 반영하지 않았다"고 적혀 있
 | --- | --- | --- |
 | 사전 리포트의 `summary.checkItems[]`(`text`, `evidenceFrom`, `evidence`, `questionOrder`): 확인할 점마다 근거 문장과 그것을 확인하는 준비된 질문의 순서(API 명세 2.6의 선택 항목) | `mocks/data.js`의 `briefingFor`가 준다. `features/room/CandidateBrief.vue`의 "확인할 점" 탭에 근거 문장과 질문 연결이 보인다 | 필드가 없다. `CandidateBrief.vue`는 글만 있는 `summary.checkPoints`를 보여 준다(근거 문장과 질문 연결 없음) |
 | 예상 꼬리질문 만들기: 백엔드가 실시간 기능을 쓰지 않는 면접에서 `predictedFollowUps: 3`을 보내면 Agent가 `questions[].followUps`에 글을 넣고, 백엔드가 그 질문을 부모로 하는 `FOLLOW_UP` 질문으로 저장한다(API 명세 2.6, 4.1) | `mocks/data.js`의 `questionsFor`(`predicted`, `PREDICTED`)가 질문마다 3개씩 붙인다. `features/interview/PrepPage.vue`와 면접 방의 나무(`features/room/room-state.js`의 `questionTree`)에 가지로 보인다 | `followUps`가 오지 않는다(명세 4.1). 화면은 부모가 있는 `FOLLOW_UP` 질문만 가지로 그리므로 받은 것이 없으면 가지가 없다 |
-| 페르소나와 면접자 유형을 준비된 질문에 반영: 백엔드가 사전 리포트 요청에 `persona`·`applicantType`을 보낸다(API 명세 4.1) | 페르소나만 반영한다: `mocks/data.js`의 `PERSONA_TEXT`에 경력 직무 면접의 질문 여섯 개를 페르소나별로 미리 써 두었다(`mocks/server.js`의 `applyPersona`). 면접자 유형은 질문에 반영하지 않는다 | Agent가 두 항목을 무시해 질문에 영향을 주지 않는다(명세 4.1) |
+| 페르소나와 면접자 유형을 준비된 질문에 반영: 백엔드가 사전 리포트 요청에 `persona`·`applicantType`을 보낸다(API 명세 4.1) | 페르소나만 반영한다(모든 면접): 경력 직무 면접은 `mocks/data.js`의 `PERSONA_TEXT`에 질문 여섯 개를 페르소나별로 미리 써 둔 표현을 쓰고(`mocks/server.js`의 `applyPersona`), 그 밖의 면접(신입, 인성 면접)은 원래 질문 뒤에 페르소나의 요구를 덧붙인다(`personaRewrite`). 면접자 유형은 질문에 반영하지 않는다 | Agent가 두 항목을 무시해 질문에 영향을 주지 않는다(명세 4.1) |
 | 페르소나를 면접 중 꼬리질문의 표현에 반영(API 명세 5장) | 화면 설명에는 꼬리질문 유형도 페르소나마다 다르다고 나오지만, 모의 소켓의 꼬리질문은 페르소나를 따르지 않는다 | Agent에 아직 반영하지 않았다(명세 5장) |
 
 ## 11/18 회의 반영 가운데 API 명세에 들어간 것
